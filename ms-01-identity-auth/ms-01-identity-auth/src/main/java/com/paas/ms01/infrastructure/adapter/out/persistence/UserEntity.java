@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -36,7 +38,8 @@ public class UserEntity {
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "paas_core.user_role") // Importante para Postgres Enums
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "role", columnDefinition = "paas_core.user_role")// Importante para Postgres Enums
     private UserRole role;
 
     @Column(name = "is_active")
