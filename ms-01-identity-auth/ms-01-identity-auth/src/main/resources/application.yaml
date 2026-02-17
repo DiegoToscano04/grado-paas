@@ -1,0 +1,24 @@
+server:
+  port: 8081 # Usaremos el 8081 para MS-01, 8082 para MS-02, etc.
+
+spring:
+  application:
+    name: ms-01-identity-auth
+  datasource:
+    url: jdbc:postgresql://localhost:5432/paas_db
+    username: admin
+    password: secret
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate # IMPORTANTE: 'validate' verifica que las tablas Java coincidan con Postgres, no las borra.
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: paas_core # Apuntamos al esquema que creamos
+    show-sql: true # Para ver las queries en consola mientras desarrollamos
+
+# Configuración JWT
+jwt:
+  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+  expiration: 86400000 # 1 día
