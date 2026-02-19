@@ -13,6 +13,7 @@ import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -52,7 +53,7 @@ public class ProjectEntity {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "generated_manifests")
-    private String generatedManifests; // Guardaremos el JSON de los manifiestos aquí
+    private List<String> generatedManifests; // Guardaremos el JSON de los manifiestos aquí
 
     @Column(name = "req_cpu")
     private BigDecimal reqCpu;
