@@ -1,5 +1,6 @@
 package com.paas.ms01.infrastructure.adapter.out.persistence;
 
+import com.paas.ms01.domain.model.ProjectStatus;
 import com.paas.ms01.domain.ports.out.ProjectPersistencePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -32,5 +33,10 @@ public class ProjectPersistenceAdapter implements ProjectPersistencePort {
     @Override
     public boolean existsByNameAndUserId(String name, UUID userId) {
         return jpaRepository.existsByNameAndUserIdAndDeletedAtIsNull(name, userId);
+    }
+
+    @Override
+    public List<ProjectEntity> findByStatus(ProjectStatus status) {
+        return jpaRepository.findByStatusAndDeletedAtIsNull(status);
     }
 }
