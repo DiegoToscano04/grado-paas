@@ -1,5 +1,6 @@
 package com.paas.ms01.infrastructure.adapter.out.persistence;
 
+import com.paas.ms01.domain.model.ProjectStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,4 +21,8 @@ public interface ProjectJpaRepository extends JpaRepository<ProjectEntity, UUID>
 
     // Buscar un proyecto específico por ID asegurando que no esté borrado
     Optional<ProjectEntity> findByIdAndDeletedAtIsNull(UUID id);
+
+    //Buscar proyecto por estado
+    List<ProjectEntity> findByStatusAndDeletedAtIsNull(ProjectStatus status);
+
 }
