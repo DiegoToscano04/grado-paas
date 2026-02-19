@@ -27,12 +27,12 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
 
         // Convertimos nuestra UserEntity al UserDetails interno de Spring Security
-        return new User(
-                userEntity.getEmail(),
-                userEntity.getPasswordHash(),
-                userEntity.getIsActive(),
-                true, true, true,
+        return new CustomUserDetails(
+                userEntity,
                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + userEntity.getRole().name()))
         );
     }
+
+
+
 }
