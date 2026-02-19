@@ -1,5 +1,6 @@
 package com.paas.ms01.domain.ports.out;
 
+import com.paas.ms01.domain.model.ProjectStatus;
 import com.paas.ms01.infrastructure.adapter.out.persistence.ProjectEntity;
 import java.util.List;
 import java.util.Optional;
@@ -10,4 +11,6 @@ public interface ProjectPersistencePort {
     Optional<ProjectEntity> findById(UUID id);
     List<ProjectEntity> findByUserId(UUID userId);
     boolean existsByNameAndUserId(String name, UUID userId);
+    List<ProjectEntity> findByStatus(ProjectStatus status);
+
 }
