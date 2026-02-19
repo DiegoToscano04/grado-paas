@@ -4,6 +4,7 @@ import com.paas.ms01.domain.ports.out.UserPersistencePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -36,5 +37,10 @@ public class UserPersistenceAdapter implements UserPersistencePort {
         return jpaRepository.findAll().stream()
                 .filter(u -> u.getEmail().equals(email) && u.getDeletedAt() == null)
                 .findFirst();
+    }
+
+    @Override
+    public Optional<UserEntity> findById(UUID userId) {
+        return jpaRepository.findById(userId);
     }
 }
