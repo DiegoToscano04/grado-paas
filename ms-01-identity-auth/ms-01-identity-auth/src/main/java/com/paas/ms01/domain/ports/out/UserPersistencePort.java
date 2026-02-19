@@ -1,6 +1,8 @@
 package com.paas.ms01.domain.ports.out;
 
 import com.paas.ms01.infrastructure.adapter.out.persistence.UserEntity;
+
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -10,4 +12,5 @@ public interface UserPersistencePort {
     boolean existsByCode(String code);
     Optional<UserEntity> findByEmail(String email);
     Optional<UserEntity> findById(UUID userId);
+    List<UserEntity> findAll();
 }
