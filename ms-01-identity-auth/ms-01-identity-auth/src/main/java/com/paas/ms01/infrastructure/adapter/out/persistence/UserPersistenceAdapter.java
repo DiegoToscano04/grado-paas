@@ -3,6 +3,8 @@ package com.paas.ms01.infrastructure.adapter.out.persistence;
 import com.paas.ms01.domain.ports.out.UserPersistencePort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -43,4 +45,11 @@ public class UserPersistenceAdapter implements UserPersistencePort {
     public Optional<UserEntity> findById(UUID userId) {
         return jpaRepository.findById(userId);
     }
+
+
+    @Override
+    public List<UserEntity> findAll() {
+        return jpaRepository.findAll();
+    }
+
 }
