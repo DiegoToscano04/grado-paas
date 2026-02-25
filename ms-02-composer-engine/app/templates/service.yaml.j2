@@ -9,4 +9,4 @@ spec:
     - protocol: TCP
       port: {{ container_port }}
       targetPort: {{ container_port }}
-  type: ClusterIP
+  type: {{ service_type | default('ClusterIP') }}
