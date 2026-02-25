@@ -22,6 +22,11 @@ spec:
         ports:
         - containerPort: {{ container_port }}
         {% endif %}
+        {% if has_environments %}
+        envFrom:
+        - configMapRef:
+            name: {{ service_name }}-config
+        {% endif %}
         volumeMounts:
         - name: {{ service_name }}-storage
           mountPath: {{ mount_path | default('/var/lib/data') }}
