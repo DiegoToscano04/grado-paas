@@ -21,3 +21,8 @@ spec:
         ports:
         - containerPort: {{ container_port }}
         {% endif %}
+        {% if has_environments %}
+        envFrom:
+        - configMapRef:
+            name: {{ service_name }}-config
+        {% endif %}
