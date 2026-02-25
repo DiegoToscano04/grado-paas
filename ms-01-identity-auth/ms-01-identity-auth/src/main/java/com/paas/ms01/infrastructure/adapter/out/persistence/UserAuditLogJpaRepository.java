@@ -1,4 +1,8 @@
 package com.paas.ms01.infrastructure.adapter.out.persistence;
 
-public interface UserAuditLogJpaRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface UserAuditLogJpaRepository extends JpaRepository<UserAuditLogEntity, Long> {
 }
