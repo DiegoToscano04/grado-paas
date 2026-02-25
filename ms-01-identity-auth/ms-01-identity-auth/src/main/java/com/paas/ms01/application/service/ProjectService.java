@@ -46,12 +46,21 @@ public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase
             throw new IllegalStateException("Ya existe un proyecto con ese nombre.");
         }
 
+        // 2. Obtener el usuario para verificar cuotas y obtener su código
+        UserEntity user = userPersistencePort.findById(command.getUserId())
+                .orElseThrow(() -> new IllegalStateException("Error interno: Usuario autenticado no encontrado."));
+
+        // 3. Generar el nombre del Namespace (RF-007)
+        String sanitizedProjectName = sanitizeForNamespace(command.getName());
+        String namespaceName = sanitizedProjectName + "-" + user.getCode();
+
         // =================================================================
         // ----- LLAMADA REAL A MS-02 (Composer Engine) -----
         // =================================================================
         ValidationResult validationResult = composerEnginePort.validateCompose(
                 command.getArchitecture(),
-                command.getDockerComposeContent()
+                command.getDockerComposeContent(),
+                namespaceName
         );
 
         // Si Python dice que no es válido, detenemos todo y mostramos los errores (RF-015)
@@ -60,11 +69,7 @@ public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase
             throw new IllegalArgumentException("Error en docker-compose: " + errorMessage);
         }
 
-        // 2. Obtener el usuario para verificar cuotas y obtener su código
-        UserEntity user = userPersistencePort.findById(command.getUserId())
-                .orElseThrow(() -> new IllegalStateException("Error interno: Usuario autenticado no encontrado."));
-
-        // 3. Verificar Cuotas (RF-035, RF-036)
+        // 4. Verificar Cuotas (RF-035, RF-036)
         // Nota: Aquí faltaría sumar los recursos de los proyectos existentes del usuario.
         // Por ahora, solo validamos contra el límite global.
         if (user.getQuotaCpuLimit().compareTo(validationResult.requiredCpu()) < 0) {
@@ -77,9 +82,6 @@ public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase
             throw new IllegalStateException("Cuota de Almacenamiento excedida. Límite: " + user.getQuotaStorageLimitMb() + "MB, Solicitado: " + validationResult.requiredStorageMb() + "MB");
         }
 
-        // 4. Generar el nombre del Namespace (RF-007)
-        String sanitizedProjectName = sanitizeForNamespace(command.getName());
-        String namespaceName = sanitizedProjectName + "-" + user.getCode();
 
         // 5. Crear la entidad del proyecto con todos los datos validados
         ProjectEntity newProject = new ProjectEntity();
