@@ -22,6 +22,18 @@ class ManifestGeneratorService:
         for service_name, service_config in services.items():
             image = service_config.get("image")
 
+            # Extraer entorno
+            environments = service_config.get("environment", {})
+            # A veces environment viene como lista ["KEY=VAL"], a veces como dict {"KEY": "VAL"}
+            env_dict = {}
+            if isinstance(environments, dict):
+                env_dict = environments
+            elif isinstance(environments, list):
+                for env_var in environments:
+                    if "=" in env_var:
+                        k, v = env_var.split("=", 1)
+                        env_dict[k] = v
+
             # Extraer puerto
             container_port = None
             ports_config = service_config.get("ports", [])
@@ -38,7 +50,14 @@ class ManifestGeneratorService:
                 "image": image,
                 "container_port": container_port,
                 "namespace_name": namespace_name,
+                "environments": env_dict,
+                "has_environments": len(env_dict) > 0,
             }
+
+            # Generar ConfigMap si hay variables (NUEVO)
+            if template_data["has_environments"]:
+                cm_template = self.env.get_template("configmap.yaml.j2")
+                manifests.append(cm_template.render(template_data))
 
             # ---------------------------------------------------------
             # LÓGICA PARA COMPONENTES WEB (back, front, monolith)
