@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ service_name }}
+  labels:
+    app: {{ service_name }}
+spec:
+  serviceName: "{{ service_name }}-svc"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ service_name }}
+  template:
+    metadata:
+      labels:
+        app: {{ service_name }}
+    spec:
+      containers:
+      - name: {{ service_name }}
+        image: {{ image }}
+        {% if container_port %}
+        ports:
+        - containerPort: {{ container_port }}
+        {% endif %}
+        volumeMounts:
+        - name: {{ service_name }}-storage
+          mountPath: {{ mount_path | default('/var/lib/data') }}
+      volumes:
+      - name: {{ service_name }}-storage
+        persistentVolumeClaim:
+          claimName: {{ service_name }}-pvc
