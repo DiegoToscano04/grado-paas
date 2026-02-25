@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ service_name }}-pvc
+  labels:
+    app: {{ service_name }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  # En MicroK8s habilitamos el addon 'storage' o 'hostpath-storage'
+  storageClassName: microk8s-hostpath 
+  resources:
+    requests:
+      storage: {{ storage_mb }}Mi
