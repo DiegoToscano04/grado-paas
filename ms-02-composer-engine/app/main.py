@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.api.composer import router as composer_router # <--- Importar el router
 
 app = FastAPI(
     title="PaaS Composer Engine (MS-02)",
@@ -7,7 +8,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Permitir CORS (para cuando lo llamemos desde otros lados, aunque principalmente será llamado por MS-01)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -15,6 +15,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Conectar las rutas
+app.include_router(composer_router) # <--- Registrar el router
 
 @app.get("/health")
 def health_check():
