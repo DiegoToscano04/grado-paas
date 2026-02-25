@@ -1,4 +1,7 @@
 package com.paas.ms01.application.service;
+
+import com.paas.ms01.domain.model.ValidationResult; // <--- Importa el nuevo record
+import com.paas.ms01.domain.ports.out.ComposerEnginePort; // <--- Importa el puerto
 import com.paas.ms01.domain.ports.in.RequestProjectApprovalUseCase;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,6 +30,8 @@ public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase
     private final ProjectPersistencePort projectPersistencePort;
     private final UserPersistencePort userPersistencePort;
     private final ObjectMapper objectMapper = new ObjectMapper(); // <--- CAMBIO: Instanciar el conversor de JSON
+    private final ComposerEnginePort composerEnginePort; // <--- 1. INYECTAR EL PUERTO
+
 
     /**
      * Implementa el flujo de las pantallas 1 y 2 de Figma:
@@ -42,11 +47,18 @@ public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase
         }
 
         // =================================================================
-        // ----- SIMULACIÓN DE LLAMADA A MS-02 (Composer Engine) -----
-        // En el futuro, esto será una llamada HTTP REST a MS-02.
-        // Por ahora, validamos y obtenemos datos simulados.
+        // ----- LLAMADA REAL A MS-02 (Composer Engine) -----
         // =================================================================
-        var validationResult = simulateMs02Validation(command.getDockerComposeContent());
+        ValidationResult validationResult = composerEnginePort.validateCompose(
+                command.getArchitecture(),
+                command.getDockerComposeContent()
+        );
+
+        // Si Python dice que no es válido, detenemos todo y mostramos los errores (RF-015)
+        if (!validationResult.isValid()) {
+            String errorMessage = String.join(" | ", validationResult.errors());
+            throw new IllegalArgumentException("Error en docker-compose: " + errorMessage);
+        }
 
         // 2. Obtener el usuario para verificar cuotas y obtener su código
         UserEntity user = userPersistencePort.findById(command.getUserId())
@@ -137,31 +149,4 @@ public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase
                 .replaceAll("[^a-z0-9-]", "");
     }
 
-    /**
-     * Este metodo es un placeholder que simula la validación que hará MS-02.
-     * En una fase posterior, lo reemplazaremos con un cliente HTTP (RestTemplate o WebClient).
-     */
-    private Ms02ValidationResult simulateMs02Validation(String dockerCompose) {
-        if (dockerCompose == null || dockerCompose.isBlank()) {
-            throw new IllegalArgumentException("El contenido de docker-compose no puede estar vacío.");
-        }
-        // Devolvemos datos fijos que coinciden con la pantalla de Figma para la demo
-        return new Ms02ValidationResult(
-                new BigDecimal("0.50"),
-                512,
-                1024, // 1 GB en MB
-                List.of("db-statefulset.yaml", "back-deployment.yaml", "back-service.yaml", "db-service.yaml")
-        );
-    }
-
-    /**
-     * Un 'record' es una clase de datos inmutable, perfecta para representar la
-     * respuesta que esperamos de MS-02.
-     */
-    private record Ms02ValidationResult(
-            BigDecimal requiredCpu,
-            int requiredMemoryMb,
-            int requiredStorageMb,
-            List<String> manifests
-    ) {}
 }
