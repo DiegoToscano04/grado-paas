@@ -7,10 +7,17 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class AuditLogAdapter implements AuditLogPort {
-    private final ProjectAuditLogJpaRepository repository;
+
+    private final ProjectAuditLogJpaRepository projectAuditRepo;
+    private final UserAuditLogJpaRepository userAuditRepo; // <--- INYECTAR NUEVO REPO
 
     @Override
     public void saveProjectAudit(ProjectAuditLogEntity auditLog) {
-        repository.save(auditLog);
+        projectAuditRepo.save(auditLog);
+    }
+
+    @Override
+    public void saveUserAudit(UserAuditLogEntity auditLog) { // <--- IMPLEMENTAR
+        userAuditRepo.save(auditLog);
     }
 }
