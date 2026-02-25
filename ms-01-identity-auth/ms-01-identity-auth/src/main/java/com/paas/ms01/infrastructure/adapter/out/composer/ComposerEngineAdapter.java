@@ -25,13 +25,14 @@ public class ComposerEngineAdapter implements ComposerEnginePort {
     private String ms02Url;
 
     @Override
-    public ValidationResult validateCompose(AppArchitecture architecture, String composeContent) {
+    public ValidationResult validateCompose(AppArchitecture architecture, String composeContent, String namespaceName) {
         String endpoint = ms02Url + "/api/composer/validate";
 
         // 1. Preparar el body de la petición
         Ms02Request requestBody = new Ms02Request();
         requestBody.setArchitecture(architecture.name());
         requestBody.setComposeContent(composeContent);
+        requestBody.setNamespaceName(namespaceName);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -66,6 +67,8 @@ public class ComposerEngineAdapter implements ComposerEnginePort {
         private String architecture;
         @JsonProperty("compose_content")
         private String composeContent;
+        @JsonProperty("namespace_name")
+        private String namespaceName;
     }
 
     @Data
