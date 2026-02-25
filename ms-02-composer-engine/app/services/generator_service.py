@@ -12,7 +12,7 @@ class ManifestGeneratorService:
         self.env = Environment(loader=FileSystemLoader(templates_dir))
 
     def generate(
-        self, compose_content: str, architecture: str, namespace: str = "default"
+        self, compose_content: str, architecture: str, namespace_name: str
     ) -> List[str]:
         compose_dict = yaml.safe_load(compose_content)
         services = compose_dict.get("services", {})
@@ -37,7 +37,7 @@ class ManifestGeneratorService:
                 "service_name": service_name,
                 "image": image,
                 "container_port": container_port,
-                "namespace": namespace,
+                "namespace_name": namespace_name,
             }
 
             # ---------------------------------------------------------
@@ -48,31 +48,32 @@ class ManifestGeneratorService:
                 manifests.append(deploy_template.render(template_data))
 
                 if container_port:
+                    template_data["service_type"] = "ClusterIP"
                     svc_template = self.env.get_template("service.yaml.j2")
                     manifests.append(svc_template.render(template_data))
 
+                    # Generar INGRESS (RF-028)
+                    host_name = f"{service_name}-{namespace_name}.apps.lab.edu.co"
+                    template_data["host_name"] = host_name
+                    ingress_template = self.env.get_template("ingress.yaml.j2")
+                    manifests.append(ingress_template.render(template_data))
+
             # ---------------------------------------------------------
-            # LÓGICA PARA BASES DE DATOS (db) - RF-030 y RF-031
+            # LÓGICA PARA BASES DE DATOS (db)
             # ---------------------------------------------------------
             elif service_name == "db":
-                # 1. Obtenemos el tamaño del storage de los labels (RF-032)
-                # Si el usuario no lo pone, asumimos 1024MB (1GB) por defecto
                 labels = service_config.get("labels", {})
                 storage_mb = labels.get("paas.storage_size_mb", 1024)
 
-                # Intentamos adivinar la ruta de montaje según la imagen
                 mount_path = "/var/lib/data"
                 if "postgres" in image.lower():
                     mount_path = "/var/lib/postgresql/data"
                 elif "mysql" in image.lower():
                     mount_path = "/var/lib/mysql"
-                elif "mongo" in image.lower():
-                    mount_path = "/data/db"
 
                 template_data["storage_mb"] = storage_mb
                 template_data["mount_path"] = mount_path
 
-                # Generamos PVC, StatefulSet y Service
                 pvc_template = self.env.get_template("pvc.yaml.j2")
                 manifests.append(pvc_template.render(template_data))
 
@@ -80,9 +81,13 @@ class ManifestGeneratorService:
                 manifests.append(sts_template.render(template_data))
 
                 if container_port:
+                    # RF-026: Si es DB Standalone, usar NodePort. Si es compuesta, ClusterIP.
+                    if architecture == "DB_STANDALONE":
+                        template_data["service_type"] = "NodePort"
+                    else:
+                        template_data["service_type"] = "ClusterIP"
+
                     svc_template = self.env.get_template("service.yaml.j2")
-                    # Para Standalone DB (RF-026) luego haremos que el Service sea NodePort.
-                    # Por ahora todos son ClusterIP.
                     manifests.append(svc_template.render(template_data))
 
         return manifests
