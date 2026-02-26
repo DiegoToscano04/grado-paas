@@ -26,3 +26,10 @@ spec:
         - configMapRef:
             name: {{ service_name }}-config
         {% endif %}
+        resources:
+          requests:
+            cpu: "{{ cpu_request }}m"
+            memory: "{{ memory_request_mb }}Mi"
+          limits:
+            cpu: "{{ cpu_limit }}m"
+            memory: "{{ memory_limit_mb }}Mi"
