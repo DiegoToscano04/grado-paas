@@ -10,7 +10,6 @@ class ManifestGeneratorService:
         templates_dir = os.path.join(current_dir, "..", "templates")
         self.env = Environment(loader=FileSystemLoader(templates_dir))
 
-        # --- DEFINICIÓN DE RECURSOS POR DEFECTO ---
         self.DEFAULTS = {
             "web": {
                 "cpu_request": 250,
@@ -37,13 +36,16 @@ class ManifestGeneratorService:
         total_memory_mb = 0
         total_storage_mb = 0
 
+        # ---------------------------------------------------------
+        # SEGURIDAD GLOBAL: Aplicar Default Deny a todo el Namespace (RF-051)
+        # ---------------------------------------------------------
+        default_deny_template = self.env.get_template("netpol-default-deny.yaml.j2")
+        manifests.append(default_deny_template.render())
+
         for service_name, service_config in services.items():
             labels = service_config.get("labels", {})
-
-            # 1. Determinar el tipo de servicio para los defaults
             service_type = "db" if service_name == "db" else "web"
 
-            # 2. Leer recursos de los labels o usar defaults
             cpu_request = int(
                 labels.get(
                     "paas.cpu_request_m", self.DEFAULTS[service_type]["cpu_request"]
@@ -65,11 +67,9 @@ class ManifestGeneratorService:
                 )
             )
 
-            # 3. Sumar a los totales
             total_cpu += cpu_request / 1000.0
             total_memory_mb += memory_request_mb
 
-            # --- Lógica de extracción de image, port, environment que ya funcionaba ---
             image = service_config.get("image")
             env_dict = {}
             environments = service_config.get("environment", {})
@@ -90,7 +90,6 @@ class ManifestGeneratorService:
                 else:
                     container_port = int(port_str)
 
-            # --- Construcción del diccionario de datos para Jinja2 (una sola vez) ---
             template_data = {
                 "service_name": service_name,
                 "image": image,
@@ -108,12 +107,12 @@ class ManifestGeneratorService:
                 cm_template = self.env.get_template("configmap.yaml.j2")
                 manifests.append(cm_template.render(template_data))
 
-            # --- Lógica de generación de manifiestos ---
+            # ---------------------------------------------------------
+            # GENERACIÓN COMPONENTES WEB
+            # ---------------------------------------------------------
             if service_name in ["back", "front", "monolith"]:
                 deploy_template = self.env.get_template("deployment.yaml.j2")
-                manifests.append(
-                    deploy_template.render(template_data)
-                )  # <-- La corrección clave
+                manifests.append(deploy_template.render(template_data))
 
                 if container_port:
                     template_data["service_type"] = "ClusterIP"
@@ -125,6 +124,30 @@ class ManifestGeneratorService:
                     ingress_template = self.env.get_template("ingress.yaml.j2")
                     manifests.append(ingress_template.render(template_data))
 
+                    # SEGURIDAD: Permitir tráfico web externo (RF-061)
+                    netpol_ingress_template = self.env.get_template(
+                        "netpol-allow-ingress.yaml.j2"
+                    )
+                    manifests.append(netpol_ingress_template.render(template_data))
+
+                # SEGURIDAD: Lógica interna THREE_TIER (RF-060.2)
+                if service_name == "back" and architecture == "THREE_TIER":
+                    netpol_internal_template = self.env.get_template(
+                        "netpol-allow-internal.yaml.j2"
+                    )
+                    manifests.append(
+                        netpol_internal_template.render(
+                            {
+                                "target_app": "back",
+                                "source_app": "front",
+                                "target_port": container_port,
+                            }
+                        )
+                    )
+
+            # ---------------------------------------------------------
+            # GENERACIÓN BASE DE DATOS
+            # ---------------------------------------------------------
             elif service_name == "db":
                 storage_mb = int(labels.get("paas.storage_size_mb", 1024))
                 total_storage_mb += storage_mb
@@ -141,15 +164,39 @@ class ManifestGeneratorService:
                 manifests.append(pvc_template.render(template_data))
 
                 sts_template = self.env.get_template("statefulset.yaml.j2")
-                manifests.append(
-                    sts_template.render(template_data)
-                )  # <-- La corrección clave
+                manifests.append(sts_template.render(template_data))
 
                 if container_port:
+                    # SEGURIDAD Y RED DE BASE DE DATOS
                     if architecture == "DB_STANDALONE":
                         template_data["service_type"] = "NodePort"
+                        # RF-059: Permitir tráfico externo a la DB Standalone
+                        netpol_ingress_template = self.env.get_template(
+                            "netpol-allow-ingress.yaml.j2"
+                        )
+                        manifests.append(netpol_ingress_template.render(template_data))
                     else:
                         template_data["service_type"] = "ClusterIP"
+
+                        # RF-060.3 / RF-062.2: Permitir tráfico solo desde el backend o monolith
+                        source_app = (
+                            "back"
+                            if architecture in ["BACKEND_DB", "THREE_TIER"]
+                            else "monolith"
+                        )
+                        netpol_internal_template = self.env.get_template(
+                            "netpol-allow-internal.yaml.j2"
+                        )
+                        manifests.append(
+                            netpol_internal_template.render(
+                                {
+                                    "target_app": "db",
+                                    "source_app": source_app,
+                                    "target_port": container_port,
+                                }
+                            )
+                        )
+
                     svc_template = self.env.get_template("service.yaml.j2")
                     manifests.append(svc_template.render(template_data))
 
