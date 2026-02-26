@@ -27,6 +27,13 @@ spec:
         - configMapRef:
             name: {{ service_name }}-config
         {% endif %}
+        resources:
+          requests:
+            cpu: "{{ cpu_request }}m"
+            memory: "{{ memory_request_mb }}Mi"
+          limits:
+            cpu: "{{ cpu_limit }}m"
+            memory: "{{ memory_limit_mb }}Mi"
         volumeMounts:
         - name: {{ service_name }}-storage
           mountPath: {{ mount_path | default('/var/lib/data') }}
