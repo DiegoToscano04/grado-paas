@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException
 from app.models.schemas import ComposeValidationRequest, ComposeValidationResponse
 from app.services.validator_service import ComposeValidatorService
-from app.services.generator_service import ManifestGeneratorService  # <--- NUEVO
+from app.services.generator_service import ManifestGeneratorService
 
 router = APIRouter(prefix="/api/composer", tags=["Composer Engine"])
 validator_service = ComposeValidatorService()
-generator_service = ManifestGeneratorService()  # <--- NUEVO
+generator_service = ManifestGeneratorService()
 
 
 @router.post("/validate", response_model=ComposeValidationResponse)
@@ -21,12 +21,13 @@ def validate_compose(request: ComposeValidationRequest):
 
     # 3. Si es válido, extraer/calcular recursos
     # Nota: El bloque try/except previene errores si el string ya fue validado
-    cpu, memory_mb, storage_mb = validator_service.extract_resources(
-        request.compose_content
+    # El generador ahora devuelve los manifiestos Y los totales calculados
+    generated_manifests, cpu, memory_mb, storage_mb = generator_service.generate(
+        request.compose_content, request.architecture.name, request.namespace_name
     )
 
-    # <--- NUEVO: Generar manifiestos con namespace
-    generated_manifests = generator_service.generate(
+    # El generador ahora devuelve los manifiestos Y los totales calculados
+    generated_manifests, cpu, memory_mb, storage_mb = generator_service.generate(
         request.compose_content, request.architecture.name, request.namespace_name
     )
 
