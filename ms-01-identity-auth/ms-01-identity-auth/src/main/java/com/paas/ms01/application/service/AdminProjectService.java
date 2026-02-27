@@ -1,5 +1,7 @@
 package com.paas.ms01.application.service;
 
+import com.paas.ms01.domain.model.DeployMessage;
+import com.paas.ms01.domain.ports.out.DeployMessagePort;
 import com.paas.ms01.domain.model.ProjectActionType;
 import com.paas.ms01.domain.ports.out.AuditLogPort;
 import com.paas.ms01.infrastructure.adapter.out.persistence.ProjectAuditLogEntity;
@@ -21,6 +23,7 @@ public class AdminProjectService implements ListPendingProjectsUseCase, ReviewPr
 
     private final ProjectPersistencePort projectPersistencePort;
     private final AuditLogPort auditLogPort;
+    private final DeployMessagePort deployMessagePort;
 
     @Override
     @Transactional(readOnly = true)
@@ -38,7 +41,14 @@ public class AdminProjectService implements ListPendingProjectsUseCase, ReviewPr
 
         // --- REGISTRO DE AUDITORÍA ---
         saveAudit(projectId, adminId, previousStatus, ProjectStatus.APPROVED, ProjectActionType.APPROVE, "Aprobado administrativamente.");
-        // TODO: Publicar evento en RabbitMQ para MS-03
+
+        // --- ENVIAR A KUBERNETES VÍA RABBITMQ (NUEVO) ---
+        DeployMessage deployMessage = new DeployMessage(
+                project.getId(),
+                project.getNamespaceName(),
+                project.getGeneratedManifests()
+        );
+        deployMessagePort.sendDeployCommand(deployMessage);
     }
 
     @Override
