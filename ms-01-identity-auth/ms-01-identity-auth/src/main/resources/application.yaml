@@ -17,7 +17,11 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         default_schema: paas_core # Apuntamos al esquema que creamos
     show-sql: true # Para ver las queries en consola mientras desarrollamos
-
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: admin
+    password: secret
 # Configuración JWT
 jwt:
   secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
