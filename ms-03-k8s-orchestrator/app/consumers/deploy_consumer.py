@@ -1,8 +1,10 @@
 import json
 import pika
 from app.core.rabbitmq_config import get_rabbitmq_connection
+from app.services.k8s_deployer import KubernetesDeployerService
 
 QUEUE_NAME = "deploy.queue"
+deployer_service = KubernetesDeployerService()
 
 
 def on_message_received(ch, method, properties, body):
@@ -21,15 +23,17 @@ def on_message_received(ch, method, properties, body):
         print(f"🏗️ Namespace: {namespace}")
         print(f"📄 Cantidad de Manifiestos a aplicar: {len(manifests)}")
 
-        # TODO: Aquí llamaremos a la API de Kubernetes para inyectar los manifiestos
+        # --- MAGIA: APLICAR EN KUBERNETES ---
+        deployer_service.apply_manifests(namespace, manifests)
+        # ------------------------------------
 
-        # 2. Confirmar a RabbitMQ que procesamos el mensaje exitosamente (ACK)
+        # Confirmar a RabbitMQ
         ch.basic_ack(delivery_tag=method.delivery_tag)
-        print(f"✅ [RABBITMQ] Mensaje procesado y eliminado de la cola.\n")
+        print(f"✅ [RABBITMQ] Tarea completada y mensaje ACKed.\n")
 
     except Exception as e:
-        print(f"❌[RABBITMQ] Error procesando el mensaje: {str(e)}")
-        # Si hay un error crítico, no confirmamos el mensaje para que no se pierda (NACK)
+        print(f"❌[RABBITMQ] Error CRÍTICO procesando el mensaje: {str(e)}")
+        # NACK: No confirmamos, el mensaje se queda en la cola o va a una Dead Letter Queue
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
 
