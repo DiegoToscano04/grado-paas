@@ -38,7 +38,7 @@ app.add_middleware(
 
 # Inicializar clientes de K8s al arrancar
 try:
-    core_v1, apps_v1, networking_v1 = init_k8s_client()
+    api_client, core_v1 = init_k8s_client()
 except Exception as e:
     print("El orquestador arrancó, pero K8s no está disponible.")
 
