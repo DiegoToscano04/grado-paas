@@ -30,6 +30,7 @@ public class AdminProjectController {
                 .map(p -> ProjectController.ProjectSummaryResponse.builder()
                         .id(p.getId())
                         .name(p.getName())
+                        .description(p.getDescription())
                         .namespaceName(p.getNamespaceName())
                         .status(p.getStatus())
                         .architecture(p.getArchitecture())
