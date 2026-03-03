@@ -31,3 +31,5 @@ jwt:
 app:
   ms02:
     url: http://localhost:8082
+  internal:
+    api-key: super-secret-internal-key-123
