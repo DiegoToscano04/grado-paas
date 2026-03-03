@@ -1,17 +1,11 @@
 package com.paas.ms01.application.service;
 
-import com.paas.ms01.domain.model.ValidationResult; // <--- Importa el nuevo record
-import com.paas.ms01.domain.ports.out.ComposerEnginePort; // <--- Importa el puerto
-import com.paas.ms01.domain.ports.in.RequestProjectApprovalUseCase;
+import com.paas.ms01.domain.model.*;
+import com.paas.ms01.domain.ports.in.*;
+import com.paas.ms01.domain.ports.out.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.paas.ms01.domain.model.CreateProjectCommand;
-import com.paas.ms01.domain.model.ProjectStatus;
-import com.paas.ms01.domain.ports.in.CreateProjectUseCase;
-import com.paas.ms01.domain.ports.in.GetProjectDetailsUseCase;
-import com.paas.ms01.domain.ports.in.ListProjectsUseCase;
-import com.paas.ms01.domain.ports.out.ProjectPersistencePort;
-import com.paas.ms01.domain.ports.out.UserPersistencePort;
+import com.paas.ms01.infrastructure.adapter.out.persistence.ProjectAuditLogEntity;
 import com.paas.ms01.infrastructure.adapter.out.persistence.ProjectEntity;
 import com.paas.ms01.infrastructure.adapter.out.persistence.UserEntity;
 import lombok.RequiredArgsConstructor;
@@ -19,18 +13,21 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase, GetProjectDetailsUseCase, RequestProjectApprovalUseCase {
+public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase, GetProjectDetailsUseCase, RequestProjectApprovalUseCase, UpdateProjectStatusUseCase, DeleteProjectUseCase {
 
     private final ProjectPersistencePort projectPersistencePort;
     private final UserPersistencePort userPersistencePort;
     private final ObjectMapper objectMapper = new ObjectMapper(); // <--- CAMBIO: Instanciar el conversor de JSON
-    private final ComposerEnginePort composerEnginePort; // <--- 1. INYECTAR EL PUERTO
+    private final ComposerEnginePort composerEnginePort; //
+    private final AuditLogPort auditLogPort;
+    private final TerminateMessagePort terminateMessagePort;
 
 
     /**
@@ -149,6 +146,70 @@ public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase
         return projectName.toLowerCase()
                 .replaceAll("\\s+", "-")
                 .replaceAll("[^a-z0-9-]", "");
+    }
+
+    @Override
+    @Transactional
+    public void updateStatus(UUID projectId, ProjectStatus newStatus, String message) {
+        ProjectEntity project = projectPersistencePort.findById(projectId)
+                .orElseThrow(() -> new IllegalArgumentException("Proyecto no encontrado"));
+
+        ProjectStatus previousStatus = project.getStatus();
+        project.setStatus(newStatus);
+
+        // Si MS-03 nos dice que ya lo destruyó, aplicamos el borrado lógico.
+        if (newStatus == ProjectStatus.TERMINATED) {
+            project.setDeletedAt(LocalDateTime.now());
+        }
+
+        projectPersistencePort.save(project);
+
+        // Registro de Auditoría Automático del Sistema
+        ProjectAuditLogEntity audit = new ProjectAuditLogEntity();
+        audit.setProjectId(projectId);
+        audit.setPreviousStatus(previousStatus);
+        audit.setNewStatus(newStatus);
+        audit.setReason(message);
+
+        // Mapear el estado a la acción de auditoría correcta
+        ProjectActionType action;
+        if (newStatus == ProjectStatus.DEPLOYING) action = ProjectActionType.DEPLOY_START;
+        else if (newStatus == ProjectStatus.DEPLOYED) action = ProjectActionType.DEPLOY_SUCCESS;
+        else if (newStatus == ProjectStatus.FAILED) action = ProjectActionType.DEPLOY_FAILED;
+        else if (newStatus == ProjectStatus.TERMINATED) action = ProjectActionType.DELETE;
+        else action = ProjectActionType.APPROVE; // Valor por defecto de seguridad
+
+        audit.setAction(action);
+        auditLogPort.saveProjectAudit(audit);
+    }
+
+    // --- NUEVO MÉTODO DE DESTRUCCIÓN ---
+    @Override
+    @Transactional
+    public void deleteProject(UUID projectId, UUID userId) {
+        ProjectEntity project = projectPersistencePort.findById(projectId)
+                .filter(p -> p.getUserId().equals(userId))
+                .orElseThrow(() -> new IllegalArgumentException("Proyecto no encontrado o no autorizado."));
+
+        ProjectStatus previousStatus = project.getStatus();
+
+        // Lo ponemos en estado TERMINATING
+        project.setStatus(ProjectStatus.TERMINATING);
+        projectPersistencePort.save(project);
+
+        // Guardar Auditoría
+        ProjectAuditLogEntity audit = new ProjectAuditLogEntity();
+        audit.setProjectId(projectId);
+        audit.setChangedByUserId(userId);
+        audit.setPreviousStatus(previousStatus);
+        audit.setNewStatus(ProjectStatus.TERMINATING);
+        audit.setAction(ProjectActionType.TERMINATE);
+        audit.setReason("El usuario solicitó la eliminación del proyecto.");
+        auditLogPort.saveProjectAudit(audit);
+
+        // Enviar orden a RabbitMQ
+        TerminateMessage message = new TerminateMessage(project.getId(), project.getNamespaceName());
+        terminateMessagePort.sendTerminateCommand(message);
     }
 
 }
