@@ -1,4 +1,8 @@
 package com.paas.ms01.domain.model;
 
-public record TerminateMEssage() {
-}
+import java.util.UUID;
+
+public record TerminateMessage(
+        UUID projectId,
+        String namespaceName
+) {}
