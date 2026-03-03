@@ -3,7 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.k8s_config import init_k8s_client
 import threading  # <--- IMPORTANTE
 from app.consumers.deploy_consumer import start_consuming  # <--- IMPORTANTE
+from app.consumers.terminate_consumer import start_terminate_consuming
 from contextlib import asynccontextmanager  # <--- IMPORTANTE
+from app.api.observer import router as observer_router
 
 
 # Ciclo de vida de FastAPI (arrancar tareas en segundo plano)
@@ -11,9 +13,14 @@ from contextlib import asynccontextmanager  # <--- IMPORTANTE
 async def lifespan(app: FastAPI):
     # --- AL ARRANCAR ---
     print("🚀 Iniciando servicios en segundo plano...")
-    # Lanzamos RabbitMQ en un hilo separado (daemon=True hace que se cierre si cerramos FastAPI)
-    rabbitmq_thread = threading.Thread(target=start_consuming, daemon=True)
-    rabbitmq_thread.start()
+
+    # Hilo 1: Despliegues
+    deploy_thread = threading.Thread(target=start_consuming, daemon=True)
+    deploy_thread.start()
+
+    # Hilo 2: Destrucciones (NUEVO)
+    terminate_thread = threading.Thread(target=start_terminate_consuming, daemon=True)
+    terminate_thread.start()
 
     yield  # Aquí FastAPI atiende las peticiones web
 
@@ -35,6 +42,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(observer_router)
 
 # Inicializar clientes de K8s al arrancar
 try:
