@@ -1,11 +1,8 @@
 package com.paas.ms01.infrastructure.adapter.in.web;
 
-import com.paas.ms01.domain.ports.in.RequestProjectApprovalUseCase;
+import com.paas.ms01.domain.ports.in.*;
 import com.paas.ms01.domain.model.AppArchitecture;
 import com.paas.ms01.domain.model.CreateProjectCommand;
-import com.paas.ms01.domain.ports.in.CreateProjectUseCase;
-import com.paas.ms01.domain.ports.in.GetProjectDetailsUseCase;
-import com.paas.ms01.domain.ports.in.ListProjectsUseCase;
 import com.paas.ms01.infrastructure.adapter.out.persistence.ProjectEntity;
 import com.paas.ms01.infrastructure.adapter.out.persistence.UserEntity;
 import com.paas.ms01.infrastructure.config.CustomUserDetails;
@@ -36,6 +33,7 @@ public class ProjectController {
     private final ListProjectsUseCase listProjectsUseCase;
     private final GetProjectDetailsUseCase getProjectDetailsUseCase;
     private final RequestProjectApprovalUseCase requestProjectApprovalUseCase;
+    private final DeleteProjectUseCase deleteProjectUseCase;
 
     @PostMapping
     public ResponseEntity<?> createAndValidateProject(
@@ -195,6 +193,18 @@ public class ProjectController {
         String requiredMemoryMb;
         String requiredStorageGb;
         List<String> generatedManifests; // Lista de nombres de archivos (ej: "db-statefulset.yaml")
+    }
+
+    @DeleteMapping("/{projectId}")
+    public ResponseEntity<?> deleteProject(
+            @PathVariable UUID projectId,
+            @AuthenticationPrincipal CustomUserDetails authenticatedUser) {
+        try {
+            deleteProjectUseCase.deleteProject(projectId, authenticatedUser.getUserEntity().getId());
+            return ResponseEntity.ok("El proyecto ha iniciado su proceso de eliminación.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        }
     }
 
 }
