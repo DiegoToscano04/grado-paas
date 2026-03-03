@@ -35,7 +35,7 @@ public class ProjectEntity {
 
     private String description;
 
-    @Column(name = "namespace_name", nullable = false, unique = true)
+    @Column(name = "namespace_name", nullable = false)
     private String namespaceName;
 
     @Enumerated(EnumType.STRING)
