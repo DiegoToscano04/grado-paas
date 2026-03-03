@@ -56,3 +56,19 @@ class KubernetesDeployerService:
                 raise e
 
         print(f"🎉 Despliegue completado exitosamente en '{namespace_name}'.")
+
+    def delete_namespace(self, namespace_name: str):
+        """Elimina físicamente el namespace y todos sus recursos en K8s."""
+        try:
+            print(f"🗑️ Eliminando Namespace '{namespace_name}' y todos sus recursos...")
+            self.core_v1.delete_namespace(name=namespace_name)
+            print(
+                f"✅ Orden de eliminación enviada a Kubernetes para '{namespace_name}'."
+            )
+        except ApiException as e:
+            if e.status == 404:
+                print(
+                    f"ℹ️ El Namespace '{namespace_name}' no existe, asumiendo como ya eliminado."
+                )
+            else:
+                raise e
