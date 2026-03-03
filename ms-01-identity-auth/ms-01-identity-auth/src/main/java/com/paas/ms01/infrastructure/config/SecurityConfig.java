@@ -29,6 +29,7 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable()) // Desactivado porque usamos JWT/Cookies HttpOnly
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/internal/**").permitAll() // microservicio a microservicio
                         .requestMatchers("/api/auth/**").permitAll() // Login y Register públicos
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()                // ¡TODO LO DEMÁS REQUIERE LOGIN!
