@@ -28,6 +28,7 @@ public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase
     private final ComposerEnginePort composerEnginePort; //
     private final AuditLogPort auditLogPort;
     private final TerminateMessagePort terminateMessagePort;
+    private final NotificationService notificationService;
 
 
     /**
@@ -135,7 +136,8 @@ public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase
         projectPersistencePort.save(project);
 
         // TODO: (Más adelante) Aquí agregaremos el registro en la tabla de Auditoría (project_audit_logs)
-        // TODO: (Más adelante) Aquí enviaremos la notificación/correo al Administrador
+        // Servicio de Notificaciones
+        notificationService.notifyAdmins("Nueva Solicitud de Despliegue", "El proyecto '" + project.getName() + "' requiere aprobación.");
     }
 
 
@@ -160,6 +162,15 @@ public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase
         // Si MS-03 nos dice que ya lo destruyó, aplicamos el borrado lógico.
         if (newStatus == ProjectStatus.TERMINATED) {
             project.setDeletedAt(LocalDateTime.now());
+        }
+
+        // --- BLOQUE DE NOTIFICACIONES ---
+        if (newStatus == ProjectStatus.DEPLOYED) {
+            notificationService.notifyUser(project.getUserId(), "Despliegue Exitoso", "Tu proyecto '" + project.getName() + "' ya está corriendo en el clúster.");
+        } else if (newStatus == ProjectStatus.FAILED) {
+            notificationService.notifyUser(project.getUserId(), "Error de Despliegue", "Hubo un error al desplegar '" + project.getName() + "': " + message);
+        } else if (newStatus == ProjectStatus.TERMINATED) { // <--- NUEVA NOTIFICACIÓN AQUÍ
+            notificationService.notifyUser(project.getUserId(), "Proyecto Eliminado", "El proyecto '" + project.getName() + "' fue destruido físicamente y tu cuota ha sido liberada.");
         }
 
         projectPersistencePort.save(project);
