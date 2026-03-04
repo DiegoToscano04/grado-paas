@@ -195,3 +195,15 @@ CREATE TABLE paas_core.project_audit_logs (
     details JSONB,
     created_at TIMESTAMP DEFAULT NOW()
 );
+
+CREATE TABLE paas_core.notifications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES paas_core.users(id),
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- Índice para que las búsquedas del dashboard sean súper rápidas
+CREATE INDEX idx_notifications_user ON paas_core.notifications(user_id, is_read);
