@@ -24,6 +24,7 @@ public class AdminProjectService implements ListPendingProjectsUseCase, ReviewPr
     private final ProjectPersistencePort projectPersistencePort;
     private final AuditLogPort auditLogPort;
     private final DeployMessagePort deployMessagePort;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -49,6 +50,7 @@ public class AdminProjectService implements ListPendingProjectsUseCase, ReviewPr
                 project.getGeneratedManifests()
         );
         deployMessagePort.sendDeployCommand(deployMessage);
+        notificationService.notifyUser(project.getUserId(), "Despliegue Aprobado", "Tu proyecto '" + project.getName() + "' ha sido aprobado y está en proceso de despliegue en Kubernetes.");
     }
 
     @Override
@@ -65,6 +67,7 @@ public class AdminProjectService implements ListPendingProjectsUseCase, ReviewPr
 
         // --- REGISTRO DE AUDITORÍA ---
         saveAudit(projectId, adminId, previousStatus, ProjectStatus.REJECTED, ProjectActionType.REJECT, reason);
+        notificationService.notifyUser(project.getUserId(), "Despliegue Rechazado", "Tu proyecto '" + project.getName() + "' fue rechazado. Motivo: " + reason);
     }
 
     // Metodo auxiliar para no repetir código
