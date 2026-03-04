@@ -20,6 +20,7 @@ public class AdminQuotaService implements ListPendingQuotaRequestsUseCase, Revie
 
     private final QuotaRequestPersistencePort quotaRequestPersistencePort;
     private final ManageUserQuotasUseCase manageUserQuotasUseCase; // Reutilizamos tu lógica robusta
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -54,5 +55,8 @@ public class AdminQuotaService implements ListPendingQuotaRequestsUseCase, Revie
                     adminId
             );
         }
+
+        String msg = approve ? "Tu solicitud de aumento de cuotas fue aprobada." : "Tu solicitud de cuotas fue rechazada: " + adminResponse;
+        notificationService.notifyUser(request.getUserId(), "Revisión de Cuotas", msg);
     }
 }
