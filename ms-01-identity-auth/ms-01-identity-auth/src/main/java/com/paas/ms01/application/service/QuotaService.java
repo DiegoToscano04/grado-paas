@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class QuotaService implements RequestQuotaIncreaseUseCase {
 
     private final QuotaRequestPersistencePort quotaRequestPersistencePort;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -31,6 +32,7 @@ public class QuotaService implements RequestQuotaIncreaseUseCase {
         request.setJustification(command.getJustification());
         request.setStatus(QuotaStatus.PENDING);
 
+        notificationService.notifyAdmins("Solicitud de Cuota", "Un estudiante ha solicitado un aumento de recursos.");
         return quotaRequestPersistencePort.save(request);
     }
 }
