@@ -22,6 +22,19 @@ spring:
     port: 5672
     username: admin
     password: secret
+  mail:
+    host: smtp.hostinger.com
+    port: 465
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+            required: true
+
 # Configuración JWT
 jwt:
   secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
@@ -33,3 +46,4 @@ app:
     url: http://localhost:8082
   internal:
     api-key: super-secret-internal-key-123
+
