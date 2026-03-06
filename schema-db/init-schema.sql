@@ -207,3 +207,12 @@ CREATE TABLE paas_core.notifications (
 
 -- Índice para que las búsquedas del dashboard sean súper rápidas
 CREATE INDEX idx_notifications_user ON paas_core.notifications(user_id, is_read);
+
+-- Tabla para recuperar contraseña
+CREATE TABLE paas_core.password_reset_tokens (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES paas_core.users(id),
+    token VARCHAR(255) NOT NULL UNIQUE,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW()
+);
