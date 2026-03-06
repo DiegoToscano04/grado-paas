@@ -2,8 +2,10 @@ package com.paas.ms01.infrastructure.adapter.in.web;
 
 import com.paas.ms01.domain.model.LoginCommand;
 import com.paas.ms01.domain.model.RegisterUserCommand;
+import com.paas.ms01.domain.ports.in.ExecutePasswordResetUseCase;
 import com.paas.ms01.domain.ports.in.LoginUseCase;
 import com.paas.ms01.domain.ports.in.RegisterUserUseCase;
+import com.paas.ms01.domain.ports.in.RequestPasswordResetUseCase;
 import com.paas.ms01.infrastructure.adapter.out.persistence.UserEntity;
 import com.paas.ms01.infrastructure.config.JwtService;
 import jakarta.validation.Valid;
@@ -26,6 +28,8 @@ public class AuthController {
     private final RegisterUserUseCase registerUserUseCase;
     private final LoginUseCase loginUseCase;
     private final JwtService jwtService;
+    private final RequestPasswordResetUseCase requestPasswordResetUseCase;
+    private final ExecutePasswordResetUseCase executePasswordResetUseCase;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody @Valid RegisterRequest request) {
@@ -90,6 +94,23 @@ public class AuthController {
                 .body("Sesión cerrada correctamente.");
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody @Valid ForgotPasswordRequest request) {
+        // Ejecutamos la lógica. Siempre devolvemos 200 OK por seguridad (incluso si el correo no existe).
+        requestPasswordResetUseCase.requestReset(request.getEmail());
+        return ResponseEntity.ok("Si el correo está registrado, recibirás un enlace de recuperación en los próximos minutos.");
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
+        try {
+            executePasswordResetUseCase.executeReset(request.getToken(), request.getNewPassword());
+            return ResponseEntity.ok("Contraseña actualizada exitosamente. Ya puedes iniciar sesión.");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
         return ResponseEntity.ok("Estás autenticado como: " + userDetails.getUsername() +
@@ -121,5 +142,22 @@ public class AuthController {
 
         @NotBlank(message = "La contraseña es obligatoria")
         private String password;
+    }
+
+    // --- Nuevos DTOs ---
+    @Data
+    static class ForgotPasswordRequest {
+        @NotBlank(message = "El correo es obligatorio")
+        @Email
+        private String email;
+    }
+
+    @Data
+    static class ResetPasswordRequest {
+        @NotBlank(message = "El token es obligatorio")
+        private String token;
+
+        @NotBlank(message = "La nueva contraseña es obligatoria")
+        private String newPassword;
     }
 }
