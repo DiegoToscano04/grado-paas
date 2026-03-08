@@ -1,5 +1,9 @@
 package com.paas.ms01.infrastructure.config;
 
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import java.util.Arrays;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +31,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable()) // Desactivado porque usamos JWT/Cookies HttpOnly
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/internal/**").permitAll() // microservicio a microservicio
@@ -57,5 +62,26 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        // 1. Dar permiso explícito a la URL de tu frontend React
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
+
+        // 2. Permitir todos los métodos HTTP que usaremos
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+
+        // 3. Permitir los encabezados necesarios
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Internal-API-Key"));
+
+        // 4. Permitir el viaje de Cookies de seguridad
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration); // Aplicar a todas las rutas de la API
+        return source;
     }
 }
