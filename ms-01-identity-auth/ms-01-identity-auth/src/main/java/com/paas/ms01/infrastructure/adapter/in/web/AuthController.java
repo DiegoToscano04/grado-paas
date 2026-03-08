@@ -7,6 +7,7 @@ import com.paas.ms01.domain.ports.in.LoginUseCase;
 import com.paas.ms01.domain.ports.in.RegisterUserUseCase;
 import com.paas.ms01.domain.ports.in.RequestPasswordResetUseCase;
 import com.paas.ms01.infrastructure.adapter.out.persistence.UserEntity;
+import com.paas.ms01.infrastructure.config.CustomUserDetails;
 import com.paas.ms01.infrastructure.config.JwtService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
@@ -19,6 +20,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -112,9 +115,18 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok("Estás autenticado como: " + userDetails.getUsername() +
-                " con roles: " + userDetails.getAuthorities());
+    public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        // Obtenemos la entidad real del usuario logueado
+        UserEntity user = userDetails.getUserEntity();
+
+        // Devolvemos un JSON limpio con los datos que React necesita
+        return ResponseEntity.ok(Map.of(
+                "id", user.getId(),
+                "name", user.getName(),
+                "email", user.getEmail(),
+                "role", user.getRole(),
+                "code", user.getCode()
+        ));
     }
 
     @Data
