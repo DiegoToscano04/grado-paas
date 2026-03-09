@@ -7,10 +7,11 @@ interface AuthState {
     isAuthenticated: boolean;
     isLoading: boolean;
     checkAuth: () => Promise<void>;
+    login: (email: string, password: string) => Promise<void>;
     logout: () => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
     user: null,
     isAuthenticated: false,
     isLoading: true, // Inicia en true mientras preguntamos a Java si hay cookie
@@ -25,6 +26,15 @@ export const useAuthStore = create<AuthState>((set) => ({
             // Si Java responde 403 Forbidden (no hay cookie), limpiamos todo
             set({ user: null, isAuthenticated: false, isLoading: false });
         }
+    },
+
+    // --- NUEVA FUNCIÓN DE LOGIN ---
+    login: async (email, password) => {
+        // 1. Enviamos credenciales. Java responderá seteando la Cookie HttpOnly en el navegador
+        await api.post('/auth/login', { email, password });
+
+        // 2. Si fue exitoso, recargamos el usuario llamando al endpoint /me
+        await get().checkAuth();
     },
 
     // Función para cerrar sesión
