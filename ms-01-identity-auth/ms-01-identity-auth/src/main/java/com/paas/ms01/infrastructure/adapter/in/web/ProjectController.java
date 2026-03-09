@@ -19,6 +19,7 @@ import com.paas.ms01.domain.model.ProjectStatus;
 import lombok.Builder;
 import lombok.Value;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -139,6 +140,11 @@ public class ProjectController {
         ProjectStatus status;
         LocalDateTime createdAt;
         LocalDateTime updatedAt;
+        // Recursos y Manifiestos
+        BigDecimal reqCpu;
+        Integer reqMemoryMb;
+        Integer reqStorageMb;
+        List<String> generatedManifests;
 
         // metodo conversor estático para mantener la lógica de mapeo limpia
         public static ProjectDetailsResponse fromEntity(ProjectEntity entity) {
@@ -151,6 +157,10 @@ public class ProjectController {
                     .status(entity.getStatus())
                     .createdAt(entity.getCreatedAt())
                     .updatedAt(entity.getUpdatedAt())
+                    .reqCpu(entity.getReqCpu())
+                    .reqMemoryMb(entity.getReqMemoryMb())
+                    .reqStorageMb(entity.getReqStorageMb())
+                    .generatedManifests(entity.getGeneratedManifests())
                     .build();
         }
     }
