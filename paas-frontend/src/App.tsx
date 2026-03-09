@@ -1,46 +1,66 @@
 import { useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'; // <--- IMPORTAR
+
 import { useAuthStore } from './store/authStore';
+import { LoginPage } from './pages/auth/LoginPage';
+import { RegisterPage } from './pages/auth/RegisterPage';
+import { LandingPage } from './pages/public/LandingPage';
+import { StudentDashboard } from './pages/dashboard/StudentDashboard'; // <--- IMPORTAR
+
+const queryClient = new QueryClient();
+
+// GUARDIA PARA ESTUDIANTES
+const StudentRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, isLoading, user } = useAuthStore();
+  if (isLoading) return <div className="flex h-screen items-center justify-center">Cargando...</div>;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'STUDENT') return <Navigate to="/admin" replace />;
+  return <>{children}</>;
+};
+
+// GUARDIA PARA ADMINS
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, isLoading, user } = useAuthStore();
+  if (isLoading) return <div className="flex h-screen items-center justify-center">Cargando...</div>;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'ADMIN') return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+};
 
 function App() {
-  // Extraemos lo que necesitamos de nuestro estado global
-  const { checkAuth, isAuthenticated, user, isLoading, logout } = useAuthStore();
+  const { checkAuth } = useAuthStore();
 
-  // useEffect se ejecuta apenas carga la página
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
-  // Si está cargando, mostramos un texto simple
-  if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen text-xl font-semibold">Cargando aplicación...</div>;
-  }
-
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50 text-slate-900">
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
 
-      {isAuthenticated ? (
-        <div className="bg-white p-8 rounded-xl shadow-lg text-center space-y-4">
-          <h1 className="text-3xl font-bold text-green-600">¡Conectado exitosamente! ✅</h1>
-          <p className="text-lg">Hola, <span className="font-bold text-primary">{user?.name}</span></p>
-          <p className="text-sm text-gray-500">Tu rol en el sistema es: {user?.role}</p>
+          {/* RUTA PROTEGIDA DE ESTUDIANTE */}
+          <Route path="/dashboard" element={
+            <StudentRoute>
+              <StudentDashboard />
+            </StudentRoute>
+          } />
 
-          <button
-            onClick={logout}
-            className="mt-4 px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
-          >
-            Cerrar Sesión
-          </button>
-        </div>
-      ) : (
-        <div className="bg-white p-8 rounded-xl shadow-lg text-center space-y-4">
-          <h1 className="text-3xl font-bold text-red-500">No hay sesión activa ❌</h1>
-          <p className="text-gray-500">La cookie HttpOnly no está presente o expiró.</p>
-        </div>
-      )}
-
-      <Toaster position="top-right" />
-    </div>
+          {/* RUTA PROTEGIDA DE ADMIN (Temporalmente en blanco) */}
+          <Route path="/admin" element={
+            <AdminRoute>
+              <div className="p-10"><h1>Consola de Administrador (Próximamente)</h1></div>
+            </AdminRoute>
+          } />
+        </Routes>
+        <Toaster position="top-right" />
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 
