@@ -7,7 +7,8 @@ import { useAuthStore } from './store/authStore';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { LandingPage } from './pages/public/LandingPage';
-import { StudentDashboard } from './pages/dashboard/StudentDashboard'; // <--- IMPORTAR
+import { StudentDashboard } from './pages/dashboard/StudentDashboard';
+import { CreateProjectWizard } from './components/dashboard/CreateProjectWizard';
 
 const queryClient = new QueryClient();
 
@@ -48,6 +49,13 @@ function App() {
           <Route path="/dashboard" element={
             <StudentRoute>
               <StudentDashboard />
+            </StudentRoute>
+          } />
+
+          {/* NUEVA RUTA PARA EL WIZARD */}
+          <Route path="/dashboard/new" element={
+            <StudentRoute>
+              <CreateProjectWizard />
             </StudentRoute>
           } />
 

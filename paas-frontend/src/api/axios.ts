@@ -26,3 +26,11 @@ api.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
+export const apiK8s = axios.create({
+    baseURL: 'http://localhost:8083/api/k8s',
+    headers: {
+        'Content-Type': 'application/json',
+    },
+    // No necesitamos credentials aquí porque es una API abierta de lectura por ahora
+});

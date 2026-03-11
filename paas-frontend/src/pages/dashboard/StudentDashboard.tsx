@@ -9,6 +9,8 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/api/axios"; // Importamos tu axios configurado
 import { useProjectStore } from "@/hooks/useProjectStore";
 import { cn } from "@/lib/utils";
+import { ProjectDetails } from "@/components/dashboard/ProjectDetails";
+import { CreateProjectWizard } from "@/components/dashboard/CreateProjectWizard";
 
 const DashboardNavbar = () => {
     const { user, logout } = useAuthStore();
@@ -57,8 +59,8 @@ const DashboardNavbar = () => {
 };
 
 export const StudentDashboard = () => {
-    const setSelectedProject = useProjectStore((state) => state.setSelectedProject);
-    const selectedProjectId = useProjectStore((state) => state.selectedProjectId);
+    const navigate = useNavigate(); // Inicializar
+    const { selectedProjectId, setSelectedProject } = useProjectStore();
 
     // --- LLAMADA A LA API REAL (JAVA MS-01) ---
     const { data: projects, isLoading } = useQuery({
@@ -67,6 +69,7 @@ export const StudentDashboard = () => {
             const response = await api.get('/projects');
             return response.data; // Retorna el array de proyectos
         },
+        refetchInterval: 5000, // Actualiza el sidebar cada 5 segundos
     });
 
     return (
@@ -148,22 +151,23 @@ export const StudentDashboard = () => {
                     </div>
                 </aside>
 
-                <main className="flex-1 bg-slate-50 flex items-center justify-center p-12 relative">
+                <main className="flex-1 bg-slate-50 flex items-center justify-center p-12 relative overflow-y-auto">
+
                     {!selectedProjectId ? (
-                        <div className="w-full max-w-2xl bg-white rounded-2xl border-2 border-dashed border-slate-300 hover:border-slate-400 hover:shadow-lg transition-all duration-300 cursor-pointer group flex flex-col items-center justify-center py-20 px-8 text-center z-10">
+                        <div
+                            onClick={() => navigate('/dashboard/new')}
+                            className="w-full max-w-2xl bg-white rounded-2xl border-2 border-dashed border-slate-300 hover:border-slate-400 hover:shadow-lg transition-all duration-300 cursor-pointer group flex flex-col items-center justify-center py-20 px-8 text-center z-10 m-auto mt-20"
+                        >
                             <div className="h-20 w-20 bg-slate-50 rounded-full flex items-center justify-center mb-6 border border-slate-200 group-hover:scale-110 group-hover:bg-blue-50 group-hover:border-blue-200 transition-all duration-300">
                                 <Plus className="w-10 h-10 text-slate-400 group-hover:text-blue-600" />
                             </div>
                             <h2 className="text-2xl font-bold text-slate-900 mb-2 group-hover:text-blue-600">Crear Nuevo Proyecto</h2>
                             <p className="text-slate-500 max-w-md mx-auto mb-8">
-                                Sube tu archivo <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700 font-mono text-sm border border-slate-200">docker-compose.yml</code>
+                                Sube tu archivo <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700 font-mono text-sm border border-slate-200">docker-compose.yml</code> o pégalo en nuestro editor.
                             </p>
                         </div>
                     ) : (
-                        <div className="text-slate-400 flex flex-col items-center gap-4">
-                            <p>Has seleccionado el proyecto: {selectedProjectId}</p>
-                            <Button variant="outline" onClick={() => setSelectedProject(null)}>Cerrar detalles</Button>
-                        </div>
+                        <ProjectDetails projectId={selectedProjectId} onBack={() => setSelectedProject(null)} />
                     )}
                 </main>
             </div>
