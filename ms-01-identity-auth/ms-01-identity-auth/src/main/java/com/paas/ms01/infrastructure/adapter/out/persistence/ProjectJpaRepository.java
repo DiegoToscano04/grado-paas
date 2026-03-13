@@ -25,4 +25,7 @@ public interface ProjectJpaRepository extends JpaRepository<ProjectEntity, UUID>
     //Buscar proyecto por estado
     List<ProjectEntity> findByStatusAndDeletedAtIsNull(ProjectStatus status);
 
+    List<ProjectEntity> findByStatusInAndDeletedAtIsNullOrderByUpdatedAtDesc(List<ProjectStatus> statuses);
+
+    List<ProjectEntity> findByStatusInOrderByUpdatedAtDesc(List<ProjectStatus> statuses);
 }

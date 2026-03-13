@@ -12,5 +12,7 @@ public interface ProjectPersistencePort {
     List<ProjectEntity> findByUserId(UUID userId);
     boolean existsByNameAndUserId(String name, UUID userId);
     List<ProjectEntity> findByStatus(ProjectStatus status);
-
+    List<ProjectEntity> findByStatuses(List<ProjectStatus> statuses);
+    List<ProjectEntity> findHistoryByStatuses(List<ProjectStatus> statuses);
+    Optional<ProjectEntity> findByIdIncludingDeleted(java.util.UUID id);
 }

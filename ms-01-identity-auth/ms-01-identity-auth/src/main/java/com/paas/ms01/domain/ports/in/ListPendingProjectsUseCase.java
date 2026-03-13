@@ -4,4 +4,5 @@ import java.util.List;
 
 public interface ListPendingProjectsUseCase {
     List<ProjectEntity> getPendingApprovalProjects();
+    ProjectEntity getProjectById(java.util.UUID id);
 }

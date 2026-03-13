@@ -5,4 +5,5 @@ import com.paas.ms01.infrastructure.adapter.out.persistence.UserAuditLogEntity;
 public interface AuditLogPort {
     void saveProjectAudit(ProjectAuditLogEntity auditLog);
     void saveUserAudit(UserAuditLogEntity auditLog);
+    java.util.Optional<com.paas.ms01.infrastructure.adapter.out.persistence.ProjectAuditLogEntity> findLatestDecisionLogForProject(java.util.UUID projectId);
 }

@@ -1,5 +1,7 @@
 package com.paas.ms01.infrastructure.adapter.in.web;
 
+import com.paas.ms01.domain.model.ProjectHistoryItem;
+import com.paas.ms01.domain.ports.in.GetProjectHistoryUseCase;
 import com.paas.ms01.domain.ports.in.ListPendingProjectsUseCase;
 import com.paas.ms01.domain.ports.in.ReviewProjectUseCase;
 import com.paas.ms01.infrastructure.config.CustomUserDetails;
@@ -20,6 +22,7 @@ public class AdminProjectController {
 
     private final ListPendingProjectsUseCase listPendingProjectsUseCase;
     private final ReviewProjectUseCase reviewProjectUseCase;
+    private final GetProjectHistoryUseCase getProjectHistoryUseCase;
 
     // 1. Listar solicitudes pendientes (Para la barra lateral)
     @GetMapping("/pending")
@@ -65,6 +68,22 @@ public class AdminProjectController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @GetMapping("/{projectId}")
+    public ResponseEntity<?> getProjectDetails(@PathVariable UUID projectId) {
+        try {
+            var project = listPendingProjectsUseCase.getProjectById(projectId);
+            // Reutilizamos el DTO detallado que creamos para el estudiante
+            return ResponseEntity.ok(ProjectController.ProjectDetailsResponse.fromEntity(project));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<List<ProjectHistoryItem>> getProjectHistory() {
+        return ResponseEntity.ok(getProjectHistoryUseCase.getHistory());
     }
 
     @Data

@@ -39,4 +39,19 @@ public class ProjectPersistenceAdapter implements ProjectPersistencePort {
     public List<ProjectEntity> findByStatus(ProjectStatus status) {
         return jpaRepository.findByStatusAndDeletedAtIsNull(status);
     }
+
+    @Override
+    public List<ProjectEntity> findByStatuses(List<ProjectStatus> statuses) {
+        return jpaRepository.findByStatusInAndDeletedAtIsNullOrderByUpdatedAtDesc(statuses);
+    }
+
+    @Override
+    public List<ProjectEntity> findHistoryByStatuses(List<ProjectStatus> statuses) {
+        return jpaRepository.findByStatusInOrderByUpdatedAtDesc(statuses);
+    }
+
+    @Override
+    public Optional<ProjectEntity> findByIdIncludingDeleted(UUID id) {
+        return jpaRepository.findById(id);
+    }
 }

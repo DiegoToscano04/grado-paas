@@ -20,4 +20,12 @@ public class AuditLogAdapter implements AuditLogPort {
     public void saveUserAudit(UserAuditLogEntity auditLog) { // <--- IMPLEMENTAR
         userAuditRepo.save(auditLog);
     }
+
+    @Override
+    public java.util.Optional<ProjectAuditLogEntity> findLatestDecisionLogForProject(java.util.UUID projectId) {
+        return projectAuditRepo.findFirstByProjectIdAndActionInOrderByCreatedAtDesc(
+                projectId,
+                java.util.List.of(com.paas.ms01.domain.model.ProjectActionType.APPROVE, com.paas.ms01.domain.model.ProjectActionType.REJECT)
+        );
+    }
 }
