@@ -73,7 +73,7 @@ public class AdminProjectService implements ListPendingProjectsUseCase, ReviewPr
 
         // --- REGISTRO DE AUDITORÍA ---
         saveAudit(projectId, adminId, previousStatus, ProjectStatus.REJECTED, ProjectActionType.REJECT, reason);
-        notificationService.notifyUser(project.getUserId(), "Despliegue Rechazado", "Tu proyecto '" + project.getName() + "' fue rechazado. Motivo: " + reason);
+        notificationService.notifyUser(project.getUserId(), "Despliegue Rechazado", "Tu proyecto '" + project.getName() + "' fue rechazado con correcciones. Revisa los detalles en el panel.");
     }
 
     @Override

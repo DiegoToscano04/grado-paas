@@ -3,6 +3,7 @@ package com.paas.ms01.infrastructure.adapter.in.web;
 import com.paas.ms01.domain.ports.in.*;
 import com.paas.ms01.domain.model.AppArchitecture;
 import com.paas.ms01.domain.model.CreateProjectCommand;
+import com.paas.ms01.domain.ports.out.AuditLogPort;
 import com.paas.ms01.infrastructure.adapter.out.persistence.ProjectEntity;
 import com.paas.ms01.infrastructure.adapter.out.persistence.UserEntity;
 import com.paas.ms01.infrastructure.config.CustomUserDetails;
@@ -35,6 +36,7 @@ public class ProjectController {
     private final GetProjectDetailsUseCase getProjectDetailsUseCase;
     private final RequestProjectApprovalUseCase requestProjectApprovalUseCase;
     private final DeleteProjectUseCase deleteProjectUseCase;
+    private final AuditLogPort auditLogPort;
 
     @PostMapping
     public ResponseEntity<?> createAndValidateProject(
@@ -100,11 +102,17 @@ public class ProjectController {
 
         return getProjectDetailsUseCase.findByIdAndUserId(projectId, authenticatedUser.getUserEntity().getId())
                 .map(project -> {
-                    // Mapea la entidad a un DTO de respuesta detallado
                     ProjectDetailsResponse response = ProjectDetailsResponse.fromEntity(project);
+
+                    // Si está rechazado, buscamos el por qué en la auditoría
+                    if (project.getStatus() == ProjectStatus.REJECTED) {
+                        auditLogPort.findLatestDecisionLogForProject(project.getId())
+                                .ifPresent(log -> response.setRejectReason(log.getReason()));
+                    }
+
                     return ResponseEntity.ok(response);
                 })
-                .orElse(ResponseEntity.notFound().build()); // 404 si no se encuentra o no pertenece al usuario
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // Metodo para solicitar aprobación
@@ -129,7 +137,7 @@ public class ProjectController {
     // ----- DTOs -----
 
     // DTO para la respuesta detallada
-    @Value
+    @Data
     @Builder
     static class ProjectDetailsResponse {
         UUID id;
@@ -140,6 +148,7 @@ public class ProjectController {
         ProjectStatus status;
         LocalDateTime createdAt;
         LocalDateTime updatedAt;
+        private String rejectReason;
         // Recursos y Manifiestos
         BigDecimal reqCpu;
         Integer reqMemoryMb;
