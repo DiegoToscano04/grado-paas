@@ -37,6 +37,7 @@ public class ProjectController {
     private final RequestProjectApprovalUseCase requestProjectApprovalUseCase;
     private final DeleteProjectUseCase deleteProjectUseCase;
     private final AuditLogPort auditLogPort;
+    private final UpdateProjectUseCase updateProjectUseCase;
 
     @PostMapping
     public ResponseEntity<?> createAndValidateProject(
@@ -149,6 +150,8 @@ public class ProjectController {
         LocalDateTime createdAt;
         LocalDateTime updatedAt;
         private String rejectReason;
+        // contenido docker-compose
+        String dockerComposeContent;
         // Recursos y Manifiestos
         BigDecimal reqCpu;
         Integer reqMemoryMb;
@@ -170,6 +173,7 @@ public class ProjectController {
                     .reqMemoryMb(entity.getReqMemoryMb())
                     .reqStorageMb(entity.getReqStorageMb())
                     .generatedManifests(entity.getGeneratedManifests())
+                    .dockerComposeContent(entity.getDockerComposeContent())
                     .build();
         }
     }
@@ -226,4 +230,39 @@ public class ProjectController {
         }
     }
 
+    @PutMapping("/{projectId}")
+    public ResponseEntity<?> updateProject(
+            @PathVariable UUID projectId,
+            @RequestBody @Valid UpdateProjectRequest request,
+            @AuthenticationPrincipal CustomUserDetails authenticatedUser) {
+        try {
+            ProjectEntity updatedProject = updateProjectUseCase.updateProject(
+                    projectId,
+                    request.getDockerComposeContent(),
+                    authenticatedUser.getUserEntity().getId()
+            );
+
+            // Reutilizamos el DTO de validación para que el Frontend dibuje la confirmación
+            ProjectValidationResponse response = ProjectValidationResponse.builder()
+                    .projectId(updatedProject.getId())
+                    .status(updatedProject.getStatus().name())
+                    .requiredCpu(updatedProject.getReqCpu().toPlainString() + " vCPU")
+                    .requiredMemoryMb(updatedProject.getReqMemoryMb() + " MB")
+                    .requiredStorageGb((updatedProject.getReqStorageMb() / 1024.0) + " GB")
+                    .generatedManifests(updatedProject.getGeneratedManifests())
+                    .build();
+
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+        }
+    }
+
+    @Data
+    static class UpdateProjectRequest {
+        @NotBlank(message = "El contenido del docker-compose es obligatorio")
+        private String dockerComposeContent;
+    }
 }

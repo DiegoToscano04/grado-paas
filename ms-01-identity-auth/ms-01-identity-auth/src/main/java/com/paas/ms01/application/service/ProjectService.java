@@ -20,7 +20,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase, GetProjectDetailsUseCase, RequestProjectApprovalUseCase, UpdateProjectStatusUseCase, DeleteProjectUseCase {
+public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase, GetProjectDetailsUseCase, RequestProjectApprovalUseCase, UpdateProjectStatusUseCase, DeleteProjectUseCase, UpdateProjectUseCase {
 
     private final ProjectPersistencePort projectPersistencePort;
     private final UserPersistencePort userPersistencePort;
@@ -135,7 +135,7 @@ public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase
         // 4. Guardar los cambios
         projectPersistencePort.save(project);
 
-        // TODO: (Más adelante) Aquí agregaremos el registro en la tabla de Auditoría (project_audit_logs)
+        
         // Servicio de Notificaciones
         notificationService.notifyAdmins("Nueva Solicitud de Despliegue", "El proyecto '" + project.getName() + "' requiere aprobación.");
     }
@@ -223,4 +223,56 @@ public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase
         terminateMessagePort.sendTerminateCommand(message);
     }
 
+    @Override
+    @Transactional
+    public ProjectEntity updateProject(UUID projectId, String newComposeContent, UUID userId) {
+        ProjectEntity project = projectPersistencePort.findById(projectId)
+                .filter(p -> p.getUserId().equals(userId))
+                .orElseThrow(() -> new IllegalArgumentException("Proyecto no encontrado o no autorizado."));
+
+        // 1. Validar el NUEVO contenido con MS-02 (Python)
+        var validationResult = composerEnginePort.validateCompose(
+                project.getArchitecture(),
+                newComposeContent,
+                project.getNamespaceName()
+        );
+
+        if (!validationResult.isValid()) {
+            String errorMessage = String.join(" | ", validationResult.errors());
+            throw new IllegalArgumentException("Error en docker-compose: " + errorMessage);
+        }
+
+        // 2. Verificar que las nuevas cuotas no excedan el límite global del usuario
+        UserEntity user = userPersistencePort.findById(userId).get();
+        if (user.getQuotaCpuLimit().compareTo(validationResult.requiredCpu()) < 0) {
+            throw new IllegalStateException("Cuota de CPU excedida.");
+        }
+        if (user.getQuotaMemoryLimitMb() < validationResult.requiredMemoryMb()) {
+            throw new IllegalStateException("Cuota de Memoria excedida.");
+        }
+
+        ProjectStatus previousStatus = project.getStatus();
+
+        // 3. Actualizar la entidad con los nuevos manifiestos y recursos
+        project.setDockerComposeContent(newComposeContent);
+        project.setGeneratedManifests(validationResult.manifests());
+        project.setReqCpu(validationResult.requiredCpu());
+        project.setReqMemoryMb(validationResult.requiredMemoryMb());
+        project.setReqStorageMb(validationResult.requiredStorageMb());
+
+        // 4. Devolverlo al estado de borrador para que el usuario confirme y pida aprobación
+        project.setStatus(ProjectStatus.WAITING_USER_CONFIRMATION);
+
+        // 5. Guardar Auditoría de Redespliegue
+        ProjectAuditLogEntity audit = new ProjectAuditLogEntity();
+        audit.setProjectId(project.getId());
+        audit.setChangedByUserId(userId);
+        audit.setPreviousStatus(previousStatus);
+        audit.setNewStatus(ProjectStatus.WAITING_USER_CONFIRMATION);
+        audit.setAction(ProjectActionType.REDEPLOY);
+        audit.setReason("El usuario editó el docker-compose y generó una nueva versión.");
+        auditLogPort.saveProjectAudit(audit);
+
+        return projectPersistencePort.save(project);
+    }
 }
