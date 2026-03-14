@@ -1,8 +1,9 @@
+import { RedeployEditor } from "./RedeployEditor";
 import { ManifestExplorer } from "./ManifestExplorer";
 import { useState, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, apiK8s } from "@/api/axios";
-import { Loader2, RefreshCw, Trash2, Terminal, FileCode2, Globe, Cpu, MemoryStick, HardDrive, Folder, Clock, AlertCircle, Cloud } from "lucide-react";
+import { Loader2, RefreshCw, Trash2, Terminal, FileCode2, Globe, Cpu, MemoryStick, HardDrive, Folder, Clock, AlertCircle, Cloud, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ export const ProjectDetails = ({ projectId, onBack }: { projectId: string, onBac
     const [isExploringManifests, setIsExploringManifests] = useState(false);
     useEffect(() => {
         setIsExploringManifests(false);
+        setIsRedeploying(false);
     }, [projectId]);
     const queryClient = useQueryClient();
     const { data: project, isLoading, refetch } = useQuery({
@@ -32,7 +34,10 @@ export const ProjectDetails = ({ projectId, onBack }: { projectId: string, onBac
         }
     });
 
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [isRequesting, setIsRequesting] = useState(false);
+    const [isRedeploying, setIsRedeploying] = useState(false);
 
     // --- NUEVO: ESTADOS PARA LA TERMINAL ---
     const [selectedPod, setSelectedPod] = useState<string | null>(null);
@@ -85,15 +90,17 @@ export const ProjectDetails = ({ projectId, onBack }: { projectId: string, onBac
     };
 
     const handleDelete = async () => {
-        if (window.confirm("¿Estás seguro de que deseas eliminar este proyecto?")) {
-            try {
-                await api.delete(`/projects/${projectId}`);
-                toast.success("Proceso de eliminación iniciado");
-                queryClient.invalidateQueries({ queryKey: ["my-projects"] });
-                onBack();
-            } catch (error) {
-                toast.error("Error al eliminar el proyecto");
-            }
+        setIsDeleting(true);
+        try {
+            await api.delete(`/projects/${projectId}`);
+            toast.success("Proceso de eliminación iniciado");
+            queryClient.invalidateQueries({ queryKey: ["my-projects"] });
+            onBack();
+        } catch (error) {
+            toast.error("Error al eliminar el proyecto");
+        } finally {
+            setIsDeleting(false);
+            setShowDeleteModal(false);
         }
     };
 
@@ -102,6 +109,16 @@ export const ProjectDetails = ({ projectId, onBack }: { projectId: string, onBac
     if (isExploringManifests) {
         return <ManifestExplorer project={project} onBack={() => setIsExploringManifests(false)} />;
     }
+    // Si hizo clic en Redeploy, mostramos el editor por encima
+    if (isRedeploying) {
+        return (
+            <RedeployEditor
+                project={project}
+                onCancel={() => setIsRedeploying(false)}
+                onSuccess={() => setIsRedeploying(false)}
+            />
+        );
+    }
 
     const isWeb = project.architecture !== 'DB_STANDALONE';
     const accessUrl = isWeb ? `http://front-${project.namespaceName}.apps.uislab.cloud` : 'Acceso interno (NodePort)';
@@ -109,6 +126,27 @@ export const ProjectDetails = ({ projectId, onBack }: { projectId: string, onBac
     return (
         // El contenedor principal ahora ocupa el 100% de la altura y permite scroll interno
         <div className="w-full flex flex-col h-full absolute inset-0 overflow-y-auto bg-slate-50">
+
+            {/* --- MODAL DE ELIMINACIÓN PERSONALIZADO --- */}
+            {showDeleteModal && (
+                <div className="fixed inset-0 z-[100] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center">
+                    <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md animate-in zoom-in-95">
+                        <h3 className="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
+                            <Trash2 className="text-red-500" /> Eliminar Proyecto
+                        </h3>
+                        <p className="text-sm text-slate-500 mb-6">
+                            ¿Estás seguro de que deseas eliminar <strong>{project.name}</strong>? Esta acción destruirá los contenedores en Kubernetes y liberará tu cuota de recursos. Esta acción no se puede deshacer.
+                        </p>
+                        <div className="flex justify-end gap-3">
+                            <Button variant="ghost" onClick={() => setShowDeleteModal(false)} disabled={isDeleting}>Cancelar</Button>
+                            <Button onClick={handleDelete} disabled={isDeleting} className="bg-red-600 hover:bg-red-700 text-white shadow-sm">
+                                {isDeleting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
+                                Confirmar Eliminación
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* --- NAVBAR BREADCRUMB FIJO UNIFICADO --- */}
             <div className="sticky top-0 z-40 bg-white border-b border-slate-200 px-8 py-3 flex items-center justify-between shadow-sm">
@@ -154,10 +192,15 @@ export const ProjectDetails = ({ projectId, onBack }: { projectId: string, onBac
                     </div>
 
                     <div className="flex gap-3">
-                        <Button variant="outline" className="h-9 border-slate-200" disabled={project.status !== 'DEPLOYED'}>
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsRedeploying(true)}
+                            className="h-9 border-slate-200"
+                            disabled={project.status !== 'DEPLOYED' && project.status !== 'FAILED'}
+                        >
                             <RefreshCw className="mr-2 h-4 w-4 text-slate-500" /> Redeploy
                         </Button>
-                        <Button onClick={handleDelete} className="h-9 bg-red-600 hover:bg-red-700 text-white border-transparent shadow-sm">
+                        <Button onClick={() => setShowDeleteModal(true)} className="h-9 bg-red-600 hover:bg-red-700 text-white border-transparent shadow-sm">
                             <Trash2 className="mr-2 h-4 w-4" /> Delete
                         </Button>
                     </div>
@@ -195,6 +238,23 @@ export const ProjectDetails = ({ projectId, onBack }: { projectId: string, onBac
                     </div>
                 )}
 
+                {/* ESTADO: RECHAZADO */}
+                {project.status === 'REJECTED' && (
+                    <div className="bg-red-50 border border-red-200 p-10 rounded-2xl flex flex-col items-center justify-center text-center mt-10 shadow-sm">
+                        <XCircle className="h-16 w-16 text-red-500 mb-4" />
+                        <h2 className="text-2xl font-bold text-red-900">Despliegue Rechazado</h2>
+                        <p className="text-red-700 mt-2 max-w-lg mb-6">
+                            El administrador ha revisado tu solicitud y ha dejado los siguientes comentarios:
+                        </p>
+
+                        {/* CAJA DEL MOTIVO DE RECHAZO */}
+                        <div className="bg-white border border-red-100 p-6 rounded-xl text-slate-700 italic shadow-sm w-full max-w-2xl mb-6 break-words">
+                            "{project.rejectReason || "No se especificó un motivo."}"
+                        </div>
+
+                        <p className="text-sm text-red-500 font-medium">Puedes eliminar este borrador y crear uno nuevo corrigiendo los errores.</p>
+                    </div>
+                )}
                 {project.status === 'DEPLOYED' && (
                     <>
                         {/* MÉTRICAS */}

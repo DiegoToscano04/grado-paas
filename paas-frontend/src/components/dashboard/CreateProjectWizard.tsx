@@ -288,7 +288,7 @@ export const CreateProjectWizard = () => {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="desc" className="text-slate-700 font-semibold">Descripción</Label>
+                                    <Label htmlFor="desc" className="text-slate-700 font-semibold">Descripción (Obligatoria)</Label>
                                     <textarea
                                         id="desc"
                                         placeholder="Describe brevemente el propósito de este despliegue..."

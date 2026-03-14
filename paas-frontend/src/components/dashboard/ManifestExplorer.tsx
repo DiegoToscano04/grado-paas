@@ -3,6 +3,7 @@ import Editor from '@monaco-editor/react';
 import { BookOpen, Code2, ShieldAlert, Database, Server, Monitor, LayoutGrid, FileCode2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MANIFEST_GUIDES } from '@/data/manifestGuides.ts'; // Importamos el diccionario
+import { Button } from '../ui/button';
 
 // Función para clasificar y organizar los YAMLs
 const parseManifests = (manifestsStr: string[]) => {
@@ -35,7 +36,7 @@ const parseManifests = (manifestsStr: string[]) => {
     return categories;
 };
 
-export const ManifestExplorer = ({ project, onBack }: { project: any, onBack: () => void }) => {
+export const ManifestExplorer = ({ project, onBack, isAdmin = false }: { project: any, onBack: () => void, isAdmin?: boolean }) => {
     const categories = useMemo(() => parseManifests(project.generatedManifests || []), [project.generatedManifests]);
 
     // Seleccionar el primer manifiesto por defecto
@@ -57,16 +58,17 @@ export const ManifestExplorer = ({ project, onBack }: { project: any, onBack: ()
         <div className="absolute inset-0 z-50 flex flex-col bg-slate-50">
 
             {/* BREADCRUMB (Header Fijo Superior) */}
-            <div className="flex-none bg-white border-b border-slate-200 px-8 py-3 flex items-center text-sm text-slate-500 shadow-sm relative z-10">
-                <span className="hover:text-slate-900 cursor-pointer flex items-center gap-2" onClick={onBack}>
-                    <FolderIcon /> Mis Proyectos
-                </span>
-                <span className="mx-2">/</span>
-                <span className="hover:text-slate-900 cursor-pointer" onClick={onBack}>{project.name}</span>
-                <span className="mx-2">/</span>
-                <span className="font-semibold text-blue-600 flex items-center gap-1"><FileCode2 className="h-4 w-4" /> Manifiestos</span>
-            </div>
-
+            {!isAdmin && (
+                <div className="flex-none bg-white border-b border-slate-200 px-8 py-3 flex items-center text-sm text-slate-500 shadow-sm relative z-10">
+                    <span className="hover:text-slate-900 cursor-pointer flex items-center gap-2" onClick={onBack}>
+                        <FolderIcon /> Mis Proyectos
+                    </span>
+                    <span className="mx-2">/</span>
+                    <span className="hover:text-slate-900 cursor-pointer" onClick={onBack}>{project.name}</span>
+                    <span className="mx-2">/</span>
+                    <span className="font-semibold text-blue-600 flex items-center gap-1"><FileCode2 className="h-4 w-4" /> Manifiestos</span>
+                </div>
+            )}
             {/* CUERPO INFERIOR DIVIDIDO EN 2 COLUMNAS */}
             <div className="flex-1 flex min-h-0">
 
@@ -101,7 +103,16 @@ export const ManifestExplorer = ({ project, onBack }: { project: any, onBack: ()
                             </div>
                         ))}
                     </div>
+                    {/* BOTÓN REGRESAR PARA ADMIN (NUEVO) */}
+                    {isAdmin && (
+                        <div className="mt-auto pt-8 pb-4">
+                            <Button onClick={onBack} className="w-full bg-[#0F172A] hover:bg-slate-800 text-white">
+                                &larr; Regresar
+                            </Button>
+                        </div>
+                    )}
                 </div>
+
 
                 {/* COLUMNA DERECHA: ÁREA PRINCIPAL (TABS + CONTENIDO) */}
                 <div className="flex-1 flex flex-col min-w-0 bg-white">

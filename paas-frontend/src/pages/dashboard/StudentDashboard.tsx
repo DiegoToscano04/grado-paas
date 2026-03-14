@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Database, Layers, Box, Bell, Loader2, LogOut } from "lucide-react";
+import { Search, Plus, Database, Layers, Box, Bell, Loader2, LogOut, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore"; // Ruta corregida
 import { useQuery } from "@tanstack/react-query";
@@ -10,7 +10,8 @@ import { api } from "@/api/axios"; // Importamos tu axios configurado
 import { useProjectStore } from "@/hooks/useProjectStore";
 import { cn } from "@/lib/utils";
 import { ProjectDetails } from "@/components/dashboard/ProjectDetails";
-import { CreateProjectWizard } from "@/components/dashboard/CreateProjectWizard";
+import { StudentQuotaRequest } from "@/components/dashboard/StudentQuotaRequest";
+import { NotificationMenu } from "@/components/shared/NotificationMenu";
 
 const DashboardNavbar = () => {
     const { user, logout } = useAuthStore();
@@ -26,7 +27,7 @@ const DashboardNavbar = () => {
     };
 
     return (
-        <nav className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white px-6 h-16 flex items-center justify-between">
+        <nav className="sticky top-0 z-[60] w-full border-b border-slate-200 bg-white px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-8">
                 <div className="flex items-center gap-2 font-bold text-slate-900 text-xl tracking-tight">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-blue-600">
@@ -37,9 +38,7 @@ const DashboardNavbar = () => {
             </div>
 
             <div className="flex items-center gap-4">
-                <button className="text-slate-400 hover:text-slate-600 relative">
-                    <Bell className="h-5 w-5" />
-                </button>
+                <NotificationMenu />
                 <div className="flex items-center gap-3 border-l border-slate-200 pl-4 ml-2">
                     <div className="text-right hidden sm:block">
                         <p className="text-sm font-semibold text-slate-900 leading-none">{user?.name}</p>
@@ -149,11 +148,27 @@ export const StudentDashboard = () => {
                             ))
                         )}
                     </div>
+                    {/* BOTÓN PARA SOLICITAR CUOTAS (NUEVO) */}
+                    <div className="p-4 border-t border-slate-200 bg-white shrink-0">
+                        <Button
+                            variant="outline"
+                            className="w-full text-blue-600 border-blue-200 hover:bg-blue-50 font-semibold"
+                            onClick={() => {
+                                // Usamos un "ID mágico" temporal para engañar al sistema y mostrar la vista de cuotas
+                                setSelectedProject("QUOTA_REQUEST");
+                            }}
+                        >
+                            <TrendingUp className="h-4 w-4 mr-2" />
+                            Solicitar más recursos
+                        </Button>
+                    </div>
                 </aside>
 
                 <main className="flex-1 bg-slate-50 flex items-center justify-center p-12 relative overflow-y-auto">
-
-                    {!selectedProjectId ? (
+                    {selectedProjectId === "QUOTA_REQUEST" ? (
+                        // --- VISTA DE SOLICITUD DE CUOTAS ---
+                        <StudentQuotaRequest onBack={() => setSelectedProject(null)} />
+                    ) : !selectedProjectId ? (
                         <div
                             onClick={() => navigate('/dashboard/new')}
                             className="w-full max-w-2xl bg-white rounded-2xl border-2 border-dashed border-slate-300 hover:border-slate-400 hover:shadow-lg transition-all duration-300 cursor-pointer group flex flex-col items-center justify-center py-20 px-8 text-center z-10 m-auto mt-20"
@@ -169,6 +184,8 @@ export const StudentDashboard = () => {
                     ) : (
                         <ProjectDetails projectId={selectedProjectId} onBack={() => setSelectedProject(null)} />
                     )}
+
+
                 </main>
             </div>
         </div>

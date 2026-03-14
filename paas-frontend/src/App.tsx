@@ -9,6 +9,8 @@ import { RegisterPage } from './pages/auth/RegisterPage';
 import { LandingPage } from './pages/public/LandingPage';
 import { StudentDashboard } from './pages/dashboard/StudentDashboard';
 import { CreateProjectWizard } from './components/dashboard/CreateProjectWizard';
+import { AdminDashboard } from './pages/dashboard/AdminDashboard';
+import { Cloud } from 'lucide-react';
 
 const queryClient = new QueryClient();
 
@@ -38,37 +40,51 @@ function App() {
   }, [checkAuth]);
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+    <>
+      {/* ESTO SOLO SE VE EN CELULARES */}
+      <div className="flex md:hidden h-screen flex-col items-center justify-center bg-slate-50 p-8 text-center">
+        <div className="bg-white p-6 rounded-2xl shadow-xl border border-slate-200">
+          <Cloud className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-slate-900 mb-2">Pantalla muy pequeña</h2>
+          <p className="text-slate-500 text-sm">
+            PaaS Core Education es una herramienta de infraestructura avanzada.
+            Por favor, accede desde una computadora portátil o de escritorio para una experiencia óptima.
+          </p>
+        </div>
+      </div>
 
-          {/* RUTA PROTEGIDA DE ESTUDIANTE */}
-          <Route path="/dashboard" element={
-            <StudentRoute>
-              <StudentDashboard />
-            </StudentRoute>
-          } />
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
 
-          {/* NUEVA RUTA PARA EL WIZARD */}
-          <Route path="/dashboard/new" element={
-            <StudentRoute>
-              <CreateProjectWizard />
-            </StudentRoute>
-          } />
+            {/* RUTA PROTEGIDA DE ESTUDIANTE */}
+            <Route path="/dashboard" element={
+              <StudentRoute>
+                <StudentDashboard />
+              </StudentRoute>
+            } />
 
-          {/* RUTA PROTEGIDA DE ADMIN (Temporalmente en blanco) */}
-          <Route path="/admin" element={
-            <AdminRoute>
-              <div className="p-10"><h1>Consola de Administrador (Próximamente)</h1></div>
-            </AdminRoute>
-          } />
-        </Routes>
-        <Toaster position="top-right" />
-      </BrowserRouter>
-    </QueryClientProvider>
+            {/* NUEVA RUTA PARA EL WIZARD */}
+            <Route path="/dashboard/new" element={
+              <StudentRoute>
+                <CreateProjectWizard />
+              </StudentRoute>
+            } />
+
+            {/* RUTA PROTEGIDA DE ADMIN (Temporalmente en blanco) */}
+            <Route path="/admin" element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            } />
+          </Routes>
+          <Toaster position="top-right" />
+        </BrowserRouter>
+      </QueryClientProvider>
+    </>
   );
 }
 
