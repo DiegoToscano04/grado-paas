@@ -29,8 +29,8 @@ api.interceptors.response.use(
 
 export const apiK8s = axios.create({
     baseURL: 'http://localhost:8083/api/k8s',
+    withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
     },
-    // No necesitamos credentials aquí porque es una API abierta de lectura por ahora
 });
