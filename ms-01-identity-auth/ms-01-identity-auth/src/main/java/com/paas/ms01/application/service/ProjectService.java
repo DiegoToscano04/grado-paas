@@ -135,7 +135,7 @@ public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase
         // 4. Guardar los cambios
         projectPersistencePort.save(project);
 
-        
+
         // Servicio de Notificaciones
         notificationService.notifyAdmins("Nueva Solicitud de Despliegue", "El proyecto '" + project.getName() + "' requiere aprobación.");
     }
