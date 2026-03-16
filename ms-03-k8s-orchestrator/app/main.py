@@ -14,11 +14,15 @@ async def lifespan(app: FastAPI):
     # --- AL ARRANCAR ---
     print("🚀 Iniciando servicios en segundo plano...")
 
-    # Hilo 1: Despliegues
+    print("🧵 Iniciando hilo de deploy...", flush=True)
+
     deploy_thread = threading.Thread(target=start_consuming, daemon=True)
     deploy_thread.start()
 
+    print("🧵 Hilo de deploy lanzado.", flush=True)
+
     # Hilo 2: Destrucciones (NUEVO)
+    print("🧵 Iniciando hilo de terminate...", flush=True)
     terminate_thread = threading.Thread(target=start_terminate_consuming, daemon=True)
     terminate_thread.start()
 

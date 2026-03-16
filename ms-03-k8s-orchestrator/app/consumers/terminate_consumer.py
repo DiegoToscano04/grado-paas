@@ -1,12 +1,16 @@
 import json
 import pika
 import requests
+import os
 from app.core.rabbitmq_config import get_rabbitmq_connection
 from app.services.k8s_deployer import KubernetesDeployerService
 
 QUEUE_NAME = "terminate.queue"
-MS01_URL = "http://localhost:8081/api/internal/projects"
-INTERNAL_API_KEY = "super-secret-internal-key-123"
+MS01_URL = os.getenv(
+    "MS01_URL",
+    "http://ms01-svc.plataforma-web.svc.cluster.local:8081/api/internal/projects",
+)
+INTERNAL_API_KEY = os.getenv("INTERNAL_API_KEY", "super-secret-internal-key-123")
 
 deployer_service = KubernetesDeployerService()
 
@@ -20,13 +24,16 @@ def notify_ms01(project_id: str, status: str, message: str):
             "X-Internal-API-Key": INTERNAL_API_KEY,
         }
         payload = {"status": status, "message": message}
-        response = requests.patch(url, json=payload, headers=headers)
+
+        response = requests.patch(url, json=payload, headers=headers, timeout=10)
+
         if response.status_code == 200:
-            print(f"🔄 MS-01 notificado de la eliminación: {status}")
+            print(f"🔄 MS-01 notificado de la eliminación: {status}", flush=True)
         else:
-            print(f"⚠️ Error notificando a MS-01: {response.text}")
+            print(f"⚠️ Error notificando a MS-01: {response.text}", flush=True)
+
     except Exception as e:
-        print(f"⚠️ Fallo de conexión al notificar a MS-01: {e}")
+        print(f"⚠️ Fallo de conexión al notificar a MS-01: {e}", flush=True)
 
 
 def on_message_received(ch, method, properties, body):
@@ -35,7 +42,10 @@ def on_message_received(ch, method, properties, body):
         project_id = message.get("projectId")
         namespace = message.get("namespaceName")
 
-        print(f"\n🧨 [RABBITMQ] Orden de DESTRUCCIÓN recibida! Proyecto: {project_id}")
+        print(
+            f"\n🧨 [RABBITMQ] Orden de DESTRUCCIÓN recibida! Proyecto: {project_id}",
+            flush=True,
+        )
 
         try:
             # 1. Eliminar físicamente en Kubernetes
@@ -52,17 +62,23 @@ def on_message_received(ch, method, properties, body):
         except Exception as delete_error:
             # 2B. Avisar a Java que algo falló
             notify_ms01(
-                project_id, "FAILED", f"Error eliminando en K8s: {str(delete_error)}"
+                project_id,
+                "FAILED",
+                f"Error eliminando en K8s: {str(delete_error)}",
             )
             raise delete_error
 
         # Confirmar a RabbitMQ
         ch.basic_ack(delivery_tag=method.delivery_tag)
-        print(f"✅ [RABBITMQ] Destrucción completada y mensaje ACKed.\n")
+        print(
+            f"✅ [RABBITMQ] Destrucción completada y mensaje ACKed.\n",
+            flush=True,
+        )
 
     except Exception as e:
         print(
-            f"❌[RABBITMQ] Error CRÍTICO procesando el mensaje de destrucción: {str(e)}"
+            f"❌[RABBITMQ] Error CRÍTICO procesando el mensaje de destrucción: {str(e)}",
+            flush=True,
         )
         ch.basic_nack(delivery_tag=method.delivery_tag, requeue=False)
 
@@ -74,7 +90,15 @@ def start_terminate_consuming():
         channel.queue_declare(queue=QUEUE_NAME, durable=True)
         channel.basic_consume(queue=QUEUE_NAME, on_message_callback=on_message_received)
 
-        print(f"🎧 [*] Esperando órdenes de destrucción en '{QUEUE_NAME}'...")
+        print(
+            f"🎧 [*] Esperando órdenes de destrucción en '{QUEUE_NAME}'...",
+            flush=True,
+        )
+
         channel.start_consuming()
+
     except Exception as e:
-        print(f"⚠️ Error conectando a RabbitMQ (Terminate): {e}")
+        print(
+            f"⚠️ Error conectando a RabbitMQ (Terminate): {e}",
+            flush=True,
+        )
