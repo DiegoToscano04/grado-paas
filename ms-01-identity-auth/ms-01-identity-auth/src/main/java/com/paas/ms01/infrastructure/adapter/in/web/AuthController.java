@@ -15,6 +15,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -116,10 +117,12 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(@AuthenticationPrincipal CustomUserDetails userDetails) {
-        // Obtenemos la entidad real del usuario logueado
-        UserEntity user = userDetails.getUserEntity();
 
-        // Devolvemos un JSON limpio con los datos que React necesita
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No hay sesión activa");
+        }
+
+        UserEntity user = userDetails.getUserEntity();
         return ResponseEntity.ok(Map.of(
                 "id", user.getId(),
                 "name", user.getName(),

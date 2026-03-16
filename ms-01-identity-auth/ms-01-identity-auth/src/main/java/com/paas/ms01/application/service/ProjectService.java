@@ -142,12 +142,26 @@ public class ProjectService implements CreateProjectUseCase, ListProjectsUseCase
 
 
     /**
-     * Convierte un nombre de proyecto en un string válido para un namespace de Kubernetes.
+     * Convierte un nombre de proyecto en un string válido para un namespace de Kubernetes,
+     * cumpliendo con el estándar RFC 1123.
      */
     private String sanitizeForNamespace(String projectName) {
-        return projectName.toLowerCase()
+        // 1. Limpieza básica
+        String sanitized = projectName.toLowerCase()
                 .replaceAll("\\s+", "-")
                 .replaceAll("[^a-z0-9-]", "");
+
+        // 2. Eliminar guiones al principio...
+        while(sanitized.startsWith("-")) {
+            sanitized = sanitized.substring(1);
+        }
+
+        // 3. ...y eliminar guiones al final.
+        while(sanitized.endsWith("-")) {
+            sanitized = sanitized.substring(0, sanitized.length() - 1);
+        }
+
+        return sanitized;
     }
 
     @Override
