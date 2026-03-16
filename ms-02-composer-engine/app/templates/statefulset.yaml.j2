@@ -6,7 +6,7 @@ metadata:
     app: {{ service_name }}
 spec:
   serviceName: "{{ service_name }}-svc"
-  replicas: 1
+  replicas: {{ replicas | default(1) }}
   selector:
     matchLabels:
       app: {{ service_name }}

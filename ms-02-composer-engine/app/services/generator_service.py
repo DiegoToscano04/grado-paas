@@ -3,6 +3,9 @@ from jinja2 import Environment, FileSystemLoader
 from typing import List, Tuple
 import os
 
+# --- LEER EL DOMINIO DE UNA VARIABLE DE ENTORNO ---
+DOMAIN_SUFFIX = os.getenv("PAAS_DOMAIN_SUFFIX", "apps.uislab.cloud")
+
 
 class ManifestGeneratorService:
     def __init__(self):
@@ -45,6 +48,9 @@ class ManifestGeneratorService:
         for service_name, service_config in services.items():
             labels = service_config.get("labels", {})
             service_type = "db" if service_name == "db" else "web"
+
+            # Leer el número de réplicas desde los labels ---
+            replicas = int(labels.get("paas.replicas", 1))
 
             cpu_request = int(
                 labels.get(
@@ -101,6 +107,7 @@ class ManifestGeneratorService:
                 "memory_request_mb": memory_request_mb,
                 "cpu_limit": cpu_limit,
                 "memory_limit_mb": memory_limit_mb,
+                "replicas": replicas,
             }
 
             if template_data["has_environments"]:
@@ -119,7 +126,7 @@ class ManifestGeneratorService:
                     svc_template = self.env.get_template("service.yaml.j2")
                     manifests.append(svc_template.render(template_data))
 
-                    host_name = f"{service_name}-{namespace_name}.apps.lab.edu.co"
+                    host_name = f"{service_name}-{namespace_name}.{DOMAIN_SUFFIX}"
                     template_data["host_name"] = host_name
                     ingress_template = self.env.get_template("ingress.yaml.j2")
                     manifests.append(ingress_template.render(template_data))
