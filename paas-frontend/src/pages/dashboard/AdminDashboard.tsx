@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Search, Bell, MoreHorizontal, Cloud, Loader2, FolderClock, LogOut, TrendingUp } from "lucide-react"; // <--- Importado LogOut
+import { Search, MoreHorizontal, Cloud, Loader2, FolderClock, LogOut } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/api/axios";
 import { useAuthStore } from "@/store/authStore";

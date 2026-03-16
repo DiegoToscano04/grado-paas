@@ -47,7 +47,7 @@ class KubernetesDeployerService:
             # MAGIA DEVOPS: Usamos el comando nativo "apply" de Kubernetes
             # Esto soluciona los errores 409 y hace actualizaciones inteligentes (Rolling Updates)
             process = subprocess.run(
-                ["microk8s", "kubectl", "apply", "-n", namespace_name, "-f", "-"],
+                ["kubectl", "apply", "-n", namespace_name, "-f", "-"],
                 input=full_yaml.encode("utf-8"),
                 capture_output=True,
                 check=True,

@@ -2,11 +2,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Database, Layers, Box, Bell, Loader2, LogOut, TrendingUp } from "lucide-react";
+import { Search, Plus, Database, Layers, Box, Loader2, LogOut, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useAuthStore } from "@/store/authStore"; // Ruta corregida
+import { useAuthStore } from "@/store/authStore";
 import { useQuery } from "@tanstack/react-query";
-import { api } from "@/api/axios"; // Importamos tu axios configurado
+import { api } from "@/api/axios";
 import { useProjectStore } from "@/hooks/useProjectStore";
 import { cn } from "@/lib/utils";
 import { ProjectDetails } from "@/components/dashboard/ProjectDetails";

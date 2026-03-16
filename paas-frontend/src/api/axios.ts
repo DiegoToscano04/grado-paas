@@ -2,16 +2,9 @@ import axios from 'axios';
 
 // Creamos una instancia configurada de Axios
 export const api = axios.create({
-    // URL base de tu backend de Java (MS-01)
-    baseURL: 'http://localhost:8081/api',
-
-    // ¡ESTA ES LA LÍNEA MÁGICA! 
-    // Obliga al navegador a enviar la cookie 'accessToken' en cada petición.
+    baseURL: '/api',
     withCredentials: true,
-
-    headers: {
-        'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
 });
 
 // Interceptor para manejar errores globalmente (ej: si el token expira, sacar al usuario)
@@ -28,9 +21,7 @@ api.interceptors.response.use(
 );
 
 export const apiK8s = axios.create({
-    baseURL: 'http://localhost:8083/api/k8s',
+    baseURL: '/api/k8s',
     withCredentials: true,
-    headers: {
-        'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
 });
