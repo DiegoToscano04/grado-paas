@@ -120,8 +120,19 @@ export const ProjectDetails = ({ projectId, onBack }: { projectId: string, onBac
         );
     }
 
-    const isWeb = project.architecture !== 'DB_STANDALONE';
-    const accessUrl = isWeb ? `http://front-${project.namespaceName}.apps.uislab.cloud` : 'Acceso interno (NodePort)';
+    if (!project) return <div>Error cargando el proyecto.</div>;
+
+    const isWeb = !project.architecture.includes('DB_STANDALONE');
+    let servicePrefix = 'front';
+    if (project.architecture.includes('MONOLITH')) {
+        servicePrefix = 'monolith';
+    } else if (project.architecture.includes('BACKEND')) {
+        servicePrefix = 'back';
+    }
+
+    const accessUrl = isWeb
+        ? `http://${servicePrefix}-${project.namespaceName}.${project.status === 'DEPLOYED' ? 'apps.uislab.cloud' : 'example.com'}`
+        : 'Acceso interno (NodePort)';
 
     return (
         // El contenedor principal ahora ocupa el 100% de la altura y permite scroll interno
